@@ -4,6 +4,34 @@
 
 This project uses Supabase for authentication and PostgreSQL database.
 
+## Type System (Single Source of Truth)
+
+The type system follows a strict hierarchy:
+
+1. **`src/types/database.types.ts`** - Auto-generated from Supabase schema (DO NOT EDIT)
+2. **`src/types/database.ts`** - Re-exports and convenience aliases from database.types.ts
+
+### Using Types
+
+```typescript
+// Import from database.ts (not database.types.ts directly)
+import type { Project, Diagram, UserCredits } from '@/types/database';
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/database';
+
+// For feature-specific types, import from feature module
+import type { UserCredits, DeductCreditsResult } from '@/features/credits';
+```
+
+### Regenerating Types
+
+After schema changes, regenerate types:
+
+```bash
+pnpm gen
+```
+
+This updates `src/types/database.types.ts` with the latest schema.
+
 ## Migrations
 
 Migrations are located in `supabase/migrations/`. Run them in order:
@@ -11,9 +39,6 @@ Migrations are located in `supabase/migrations/`. Run them in order:
 ```bash
 # Apply migrations via Supabase CLI
 supabase db push
-
-# Generate TypeScript types after schema changes
-pnpm gen
 ```
 
 ## Schema
@@ -114,7 +139,15 @@ After schema changes, regenerate types:
 pnpm gen
 ```
 
-This updates `src/types/database.types.ts` with the latest schema.
+This updates `src/types/database.types.ts` with the latest schema. Then update `src/types/database.ts` if new tables were added.
+
+## User Credits Auto-Initialization
+
+User credits are automatically initialized in two ways:
+
+1. **On signup**: The `signUpAction` calls `initialize_user_credits` after successful registration
+2. **Database trigger**: A trigger on `auth.users` auto-creates credits for new users
+3. **On first access**: `getUserCreditsAction` initializes credits if they don't exist
 
 ## Query Patterns
 
