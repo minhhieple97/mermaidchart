@@ -2,6 +2,7 @@
 
 import { authAction, ActionError } from '@/lib/safe-action';
 import { z } from 'zod';
+import { createDiagram, updateDiagram, deleteDiagram } from '@/queries';
 
 const createDiagramSchema = z.object({
   projectId: z.string().uuid('Invalid project ID'),
@@ -32,22 +33,15 @@ const deleteDiagramSchema = z.object({
  */
 export const createDiagramAction = authAction
   .inputSchema(createDiagramSchema)
-  .action(async ({ parsedInput: { projectId, name }, ctx: { supabase } }) => {
-    const { data, error } = await supabase
-      .from('diagrams')
-      .insert({
-        project_id: projectId,
-        name,
-        code: 'graph TD\n    A[Start] --> B[End]',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { projectId, name } }) => {
+    try {
+      const diagram = await createDiagram(projectId, name);
+      return { success: true, diagram };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to create diagram',
+      );
     }
-
-    return { success: true, diagram: data };
   });
 
 /**
@@ -55,19 +49,15 @@ export const createDiagramAction = authAction
  */
 export const updateDiagramAction = authAction
   .inputSchema(updateDiagramSchema)
-  .action(async ({ parsedInput: { id, ...updates }, ctx: { supabase } }) => {
-    const { data, error } = await supabase
-      .from('diagrams')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { id, ...updates } }) => {
+    try {
+      const diagram = await updateDiagram(id, updates);
+      return { success: true, diagram };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to update diagram',
+      );
     }
-
-    return { success: true, diagram: data };
   });
 
 /**
@@ -75,12 +65,13 @@ export const updateDiagramAction = authAction
  */
 export const deleteDiagramAction = authAction
   .inputSchema(deleteDiagramSchema)
-  .action(async ({ parsedInput: { id }, ctx: { supabase } }) => {
-    const { error } = await supabase.from('diagrams').delete().eq('id', id);
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { id } }) => {
+    try {
+      await deleteDiagram(id);
+      return { success: true };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to delete diagram',
+      );
     }
-
-    return { success: true };
   });

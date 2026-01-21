@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { authAction, ActionError } from '@/lib/safe-action';
+import { verifyDiagramOwnership, updateDiagramVisibility } from '@/queries';
 
 const toggleVisibilitySchema = z.object({
   diagramId: z.string().uuid(),
@@ -12,31 +13,22 @@ export const toggleVisibilityAction = authAction
   .inputSchema(toggleVisibilitySchema)
   .action(async ({ parsedInput, ctx }) => {
     const { diagramId, isPublic } = parsedInput;
-    const { supabase, user } = ctx;
+    const { user } = ctx;
 
-    const { data: diagram, error: fetchError } = await supabase
-      .from('diagrams')
-      .select('id, project_id, projects!inner(user_id)')
-      .eq('id', diagramId)
-      .single();
+    try {
+      const isOwner = await verifyDiagramOwnership(diagramId, user.id);
 
-    if (fetchError || !diagram) {
-      throw new ActionError('Diagram not found');
+      if (!isOwner) {
+        throw new ActionError('Unauthorized');
+      }
+
+      await updateDiagramVisibility(diagramId, isPublic);
+
+      return { success: true, isPublic };
+    } catch (error) {
+      if (error instanceof ActionError) throw error;
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to update visibility',
+      );
     }
-
-    const projects = diagram.projects as unknown as { user_id: string };
-    if (projects.user_id !== user.id) {
-      throw new ActionError('Unauthorized');
-    }
-
-    const { error: updateError } = await supabase
-      .from('diagrams')
-      .update({ is_public: isPublic })
-      .eq('id', diagramId);
-
-    if (updateError) {
-      throw new ActionError('Failed to update visibility');
-    }
-
-    return { success: true, isPublic };
   });

@@ -6,6 +6,7 @@ import { generateText } from 'ai';
 import { getAIModel, isAIConfigured, getAIProvider } from '@/lib/ai';
 import { AI_FIX_SYSTEM_PROMPT, EDITOR_CONSTANTS } from '../constants';
 import { CREDIT_COSTS } from '@/features/credits';
+import { deductCredits } from '@/queries';
 
 function sanitizeInput(input: string): string {
   return input
@@ -89,45 +90,22 @@ export const fixMermaidSyntaxAction = authAction
       const sanitizedCode = sanitizeInput(code);
       const sanitizedError = sanitizeInput(errorMessage);
 
-      const { data: deductResult, error: deductError } = await supabase.rpc(
-        'deduct_credits',
-        {
-          p_user_id: user.id,
-          p_amount: CREDIT_COSTS.AI_FIX,
-          p_transaction_type: 'ai_fix',
-          p_reference_id: diagramId ?? null,
-          p_metadata: { error_hash: hashString(sanitizedError.slice(0, 100)) },
-        },
-      );
+      let creditsRemaining = 0;
 
-      if (deductError) {
-        if (
-          deductError.code === 'PGRST116' ||
-          deductError.message?.includes('not initialized')
-        ) {
-          await supabase.rpc('initialize_user_credits', { p_user_id: user.id });
-          const { data: retryResult } = await supabase.rpc('deduct_credits', {
-            p_user_id: user.id,
-            p_amount: CREDIT_COSTS.AI_FIX,
-            p_transaction_type: 'ai_fix',
-            p_reference_id: diagramId ?? null,
-            p_metadata: {
-              error_hash: hashString(sanitizedError.slice(0, 100)),
-            },
-          });
-          if (!retryResult?.[0]?.success) {
-            throw new ActionError('Insufficient credits');
-          }
-        } else {
-          throw new ActionError('Unable to process request');
-        }
-      } else if (!deductResult?.[0]?.success) {
+      try {
+        const result = await deductCredits(
+          user.id,
+          CREDIT_COSTS.AI_FIX,
+          'ai_fix',
+          diagramId,
+          { error_hash: hashString(sanitizedError.slice(0, 100)) },
+        );
+        creditsRemaining = result.new_balance;
+      } catch (error) {
         throw new ActionError(
-          deductResult?.[0]?.error_message ?? 'Insufficient credits',
+          error instanceof Error ? error.message : 'Insufficient credits',
         );
       }
-
-      const creditsRemaining = deductResult?.[0]?.new_balance ?? 0;
 
       try {
         const model = await getAIModel('fast');

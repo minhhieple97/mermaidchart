@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { DiagramViewer } from '@/features/sharing';
 import { Lock } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getPublicDiagram } from '@/queries';
 
 interface SharePageProps {
   params: Promise<{ diagramId: string }>;
@@ -16,35 +16,29 @@ export async function generateMetadata({
   params,
 }: SharePageProps): Promise<Metadata> {
   const { diagramId } = await params;
-  const supabase = await createClient();
 
-  const { data: diagram } = await supabase
-    .from('diagrams')
-    .select('name')
-    .eq('id', diagramId)
-    .eq('is_public', true)
-    .single();
+  try {
+    const diagram = await getPublicDiagram(diagramId);
 
-  if (!diagram) {
+    return {
+      title: `${diagram.name} | Mermaid Preview`,
+      description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
+      openGraph: {
+        title: diagram.name,
+        description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: diagram.name,
+        description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
+      },
+    };
+  } catch {
     return {
       title: 'Diagram Not Found | Mermaid Preview',
     };
   }
-
-  return {
-    title: `${diagram.name} | Mermaid Preview`,
-    description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
-    openGraph: {
-      title: diagram.name,
-      description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: diagram.name,
-      description: `View "${diagram.name}" - A Mermaid diagram shared publicly`,
-    },
-  };
 }
 
 /**
@@ -67,22 +61,12 @@ export default async function SharePage({ params }: SharePageProps) {
     return <NotFoundState />;
   }
 
-  const supabase = await createClient();
-
-  // Fetch public diagram
-  const { data: diagram, error } = await supabase
-    .from('diagrams')
-    .select('id, name, code, is_public')
-    .eq('id', diagramId)
-    .eq('is_public', true)
-    .single();
-
-  // Show error state for private or non-existent diagrams
-  if (error || !diagram) {
+  try {
+    const diagram = await getPublicDiagram(diagramId);
+    return <DiagramViewer code={diagram.code} name={diagram.name} />;
+  } catch {
     return <NotFoundState />;
   }
-
-  return <DiagramViewer code={diagram.code} name={diagram.name} />;
 }
 
 /**

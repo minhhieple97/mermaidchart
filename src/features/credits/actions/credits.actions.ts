@@ -3,7 +3,7 @@
 import { authAction, ActionError } from '@/lib/safe-action';
 import { z } from 'zod';
 import { CREDIT_COSTS } from '../types/credits.types';
-import type { DeductCreditsResult, UserCredits } from '../types/credits.types';
+import { getUserCredits, deductCredits, checkCredits } from '@/queries';
 
 const emptySchema = z.object({});
 
@@ -22,31 +22,15 @@ const checkCreditsSchema = z.object({
  */
 export const getUserCreditsAction = authAction
   .inputSchema(emptySchema)
-  .action(async ({ ctx: { user, supabase } }) => {
-    const { data: credits, error } = await supabase
-      .from('user_credits')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (credits) {
-      return { success: true, credits: credits as UserCredits };
-    }
-
-    if (error?.code === 'PGRST116') {
-      const { data: newCredits, error: initError } = await supabase.rpc(
-        'initialize_user_credits',
-        { p_user_id: user.id },
+  .action(async ({ ctx: { user } }) => {
+    try {
+      const credits = await getUserCredits(user.id);
+      return { success: true, credits };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to fetch credits',
       );
-
-      if (initError) {
-        throw new ActionError('Failed to initialize credits');
-      }
-
-      return { success: true, credits: newCredits as UserCredits };
     }
-
-    throw new ActionError('Failed to fetch credits');
   });
 
 /**
@@ -56,33 +40,28 @@ export const deductCreditsAction = authAction
   .inputSchema(deductCreditsSchema)
   .action(
     async ({
-      ctx: { user, supabase },
+      ctx: { user },
       parsedInput: { transactionType, referenceId, metadata },
     }) => {
-      const amount = CREDIT_COSTS.AI_FIX;
+      try {
+        const amount = CREDIT_COSTS.AI_FIX;
+        const result = await deductCredits(
+          user.id,
+          amount,
+          transactionType,
+          referenceId,
+          metadata,
+        );
 
-      const { data, error } = await supabase.rpc('deduct_credits', {
-        p_user_id: user.id,
-        p_amount: amount,
-        p_transaction_type: transactionType,
-        p_reference_id: referenceId ?? null,
-        p_metadata: metadata ?? {},
-      });
-
-      if (error) {
-        throw new ActionError('Failed to deduct credits');
+        return {
+          success: true,
+          balance: result.new_balance,
+        };
+      } catch (error) {
+        throw new ActionError(
+          error instanceof Error ? error.message : 'Failed to deduct credits',
+        );
       }
-
-      const result = data?.[0] as DeductCreditsResult | undefined;
-
-      if (!result?.success) {
-        throw new ActionError(result?.error_message ?? 'Insufficient credits');
-      }
-
-      return {
-        success: true,
-        balance: result.new_balance,
-      };
     },
   );
 
@@ -91,20 +70,19 @@ export const deductCreditsAction = authAction
  */
 export const checkCreditsAction = authAction
   .inputSchema(checkCreditsSchema)
-  .action(
-    async ({ ctx: { user, supabase }, parsedInput: { requiredAmount } }) => {
-      const { data: credits } = await supabase
-        .from('user_credits')
-        .select('balance')
-        .eq('user_id', user.id)
-        .single();
-
-      const balance = credits?.balance ?? 0;
+  .action(async ({ ctx: { user }, parsedInput: { requiredAmount } }) => {
+    try {
+      const hasCredits = await checkCredits(user.id, requiredAmount);
+      const credits = await getUserCredits(user.id);
 
       return {
         success: true,
-        hasCredits: balance >= requiredAmount,
-        balance,
+        hasCredits,
+        balance: credits.balance,
       };
-    },
-  );
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to check credits',
+      );
+    }
+  });

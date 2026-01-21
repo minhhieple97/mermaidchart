@@ -4,6 +4,26 @@
 
 This project uses Supabase for authentication and PostgreSQL database.
 
+## Query Layer Architecture
+
+All Supabase queries are centralized in the `src/queries/` folder for clean separation:
+
+```
+src/queries/
+├── index.ts              # Public exports
+├── projects.queries.ts   # Project CRUD operations
+├── diagrams.queries.ts   # Diagram CRUD operations
+└── credits.queries.ts    # Credit management operations
+```
+
+### Benefits
+
+- **Server-only**: All queries use server Supabase client
+- **Reusable**: Shared across Server Actions and Server Components
+- **Type-safe**: Strongly typed with database types
+- **Testable**: Easy to mock and test
+- **Maintainable**: Single source of truth for data access
+
 ## Type System (Single Source of Truth)
 
 The type system follows a strict hierarchy:
@@ -31,6 +51,64 @@ pnpm gen
 ```
 
 This updates `src/types/database.types.ts` with the latest schema.
+
+## Using the Query Layer
+
+### In Server Actions
+
+```typescript
+'use server';
+
+import { authAction, ActionError } from '@/lib/safe-action';
+import { getProjects, createProject } from '@/queries';
+
+export const createProjectAction = authAction
+  .inputSchema(schema)
+  .action(async ({ parsedInput, ctx: { user } }) => {
+    try {
+      const project = await createProject(user.id, parsedInput.name);
+      return { success: true, project };
+    } catch (error) {
+      throw new ActionError(error.message);
+    }
+  });
+```
+
+### In Server Components
+
+```typescript
+import { getPublicDiagram } from '@/queries';
+
+export default async function SharePage({ params }) {
+  try {
+    const diagram = await getPublicDiagram(params.diagramId);
+    return <DiagramViewer diagram={diagram} />;
+  } catch {
+    return <NotFoundState />;
+  }
+}
+```
+
+### In Client Components (via Server Actions)
+
+Client components should never import from `@/queries` directly. Use Server Actions instead:
+
+```typescript
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { getProjectsAction } from '@/actions/projects';
+
+export function useProjects() {
+  return useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const result = await getProjectsAction({});
+      return result.data;
+    },
+  });
+}
+```
 
 ## Migrations
 
@@ -131,50 +209,21 @@ CREATE POLICY "Users can view own transactions"
   USING (auth.uid() = user_id);
 ```
 
-## Type Generation
-
-After schema changes, regenerate types:
-
-```bash
-pnpm gen
-```
-
-This updates `src/types/database.types.ts` with the latest schema. Then update `src/types/database.ts` if new tables were added.
-
 ## User Credits Auto-Initialization
 
-User credits are automatically initialized in two ways:
+User credits are automatically initialized via database trigger:
 
-1. **On signup**: The `signUpAction` calls `initialize_user_credits` after successful registration
-2. **Database trigger**: A trigger on `auth.users` auto-creates credits for new users
-3. **On first access**: `getUserCreditsAction` initializes credits if they don't exist
+1. **Database trigger**: When a new user signs up, the `on_auth_user_created` trigger automatically creates a credit record with 50 initial credits
+2. **On first access**: If the trigger fails or credits don't exist, the `getUserCredits` query function will initialize them on first access
+3. **Fallback in queries**: All credit query functions handle missing records gracefully
 
-## Query Patterns
-
-### Server-side (Server Actions)
-
-```typescript
-const supabase = await createClient(); // from @/lib/supabase/server
-const { data, error } = await supabase
-  .from('projects')
-  .select('*')
-  .order('updated_at', { ascending: false });
-```
-
-### Client-side (React Query)
-
-```typescript
-const supabase = createClient(); // from @/lib/supabase/client
-const { data, error } = await supabase
-  .from('diagrams')
-  .select('*')
-  .eq('project_id', projectId);
-```
+The trigger is defined in `supabase/migrations/004_ensure_rls_policies.sql`.
 
 ## Best Practices
 
-- Always handle errors from Supabase queries
-- Use `.single()` when expecting one row
-- Use `.select()` to specify columns and reduce payload
-- Leverage RLS instead of manual auth checks in queries
-- Use transactions for multi-table operations
+- **Always use query layer**: Never call Supabase directly in actions/components
+- **Handle errors**: All query functions throw errors - wrap in try/catch
+- **Type safety**: Import types from `@/types/database`
+- **Server-only**: Query layer is server-only, use Server Actions for client access
+- **Leverage RLS**: Trust RLS policies instead of manual auth checks
+- **Use transactions**: For multi-table operations, use database functions

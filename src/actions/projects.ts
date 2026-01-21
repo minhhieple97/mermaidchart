@@ -2,6 +2,7 @@
 
 import { authAction, ActionError } from '@/lib/safe-action';
 import { z } from 'zod';
+import { createProject, updateProject, deleteProject } from '@/queries';
 
 const createProjectSchema = z.object({
   name: z
@@ -29,18 +30,15 @@ const deleteProjectSchema = z.object({
  */
 export const createProjectAction = authAction
   .inputSchema(createProjectSchema)
-  .action(async ({ parsedInput: { name }, ctx: { user, supabase } }) => {
-    const { data, error } = await supabase
-      .from('projects')
-      .insert({ name, user_id: user.id })
-      .select()
-      .single();
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { name }, ctx: { user } }) => {
+    try {
+      const project = await createProject(user.id, name);
+      return { success: true, project };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to create project',
+      );
     }
-
-    return { success: true, project: data };
   });
 
 /**
@@ -48,19 +46,15 @@ export const createProjectAction = authAction
  */
 export const updateProjectAction = authAction
   .inputSchema(updateProjectSchema)
-  .action(async ({ parsedInput: { id, name }, ctx: { supabase } }) => {
-    const { data, error } = await supabase
-      .from('projects')
-      .update({ name })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { id, name } }) => {
+    try {
+      const project = await updateProject(id, name);
+      return { success: true, project };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to update project',
+      );
     }
-
-    return { success: true, project: data };
   });
 
 /**
@@ -68,12 +62,13 @@ export const updateProjectAction = authAction
  */
 export const deleteProjectAction = authAction
   .inputSchema(deleteProjectSchema)
-  .action(async ({ parsedInput: { id }, ctx: { supabase } }) => {
-    const { error } = await supabase.from('projects').delete().eq('id', id);
-
-    if (error) {
-      throw new ActionError(error.message);
+  .action(async ({ parsedInput: { id } }) => {
+    try {
+      await deleteProject(id);
+      return { success: true };
+    } catch (error) {
+      throw new ActionError(
+        error instanceof Error ? error.message : 'Failed to delete project',
+      );
     }
-
-    return { success: true };
   });
