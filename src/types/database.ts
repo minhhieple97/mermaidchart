@@ -1,8 +1,22 @@
 // types/database.ts
 // Re-exports Supabase generated types and provides Zod validation schemas
-// Requirements: 2.3, 3.3
+// Single source of truth: database.types.ts (generated from Supabase)
 
 import { z } from 'zod';
+
+// ============================================================================
+// Re-export all types from generated database.types.ts
+// ============================================================================
+export type {
+  Database,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  Json,
+} from '@/types/database.types';
+
+// Import for local use
 import type {
   Tables,
   TablesInsert,
@@ -10,43 +24,47 @@ import type {
 } from '@/types/database.types';
 
 // ============================================================================
-// TypeScript Types (from Supabase generated types)
+// Convenience Type Aliases (derived from database.types.ts)
 // ============================================================================
 
-/**
- * Project entity representing a container for diagrams
- * Generated from Supabase schema
- */
+/** Project row from database */
 export type Project = Tables<'projects'> & {
   diagram_count?: number; // computed field from joined query
   diagrams?: Array<{ count: number }>; // for aggregate queries
 };
 
-/**
- * Diagram entity representing a single Mermaid chart
- * Generated from Supabase schema
- */
+/** Diagram row from database */
 export type Diagram = Tables<'diagrams'>;
 
-/**
- * Project insert type for creating new projects
- */
+/** User credits row from database */
+export type UserCredits = Tables<'user_credits'>;
+
+/** Credit transaction row from database */
+export type CreditTransaction = Tables<'credit_transactions'>;
+
+/** Project insert type */
 export type ProjectInsert = TablesInsert<'projects'>;
 
-/**
- * Project update type for updating existing projects
- */
+/** Project update type */
 export type ProjectUpdate = TablesUpdate<'projects'>;
 
-/**
- * Diagram insert type for creating new diagrams
- */
+/** Diagram insert type */
 export type DiagramInsert = TablesInsert<'diagrams'>;
 
-/**
- * Diagram update type for updating existing diagrams
- */
+/** Diagram update type */
 export type DiagramUpdate = TablesUpdate<'diagrams'>;
+
+/** User credits insert type */
+export type UserCreditsInsert = TablesInsert<'user_credits'>;
+
+/** User credits update type */
+export type UserCreditsUpdate = TablesUpdate<'user_credits'>;
+
+/** Credit transaction insert type */
+export type CreditTransactionInsert = TablesInsert<'credit_transactions'>;
+
+/** Credit transaction update type */
+export type CreditTransactionUpdate = TablesUpdate<'credit_transactions'>;
 
 // ============================================================================
 // Zod Validation Schemas
