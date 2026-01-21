@@ -43,13 +43,16 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="w-[95vw] max-w-md sm:max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <AlertDialogCancel
+            disabled={isLoading}
+            className="w-full sm:w-auto h-11 sm:h-10 mt-0"
+          >
             {cancelText}
           </AlertDialogCancel>
           <AlertDialogAction
@@ -58,7 +61,7 @@ export function ConfirmDialog({
               onConfirm();
             }}
             disabled={isLoading}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="w-full sm:w-auto h-11 sm:h-10 bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {isLoading ? 'Processing...' : confirmText}
           </AlertDialogAction>

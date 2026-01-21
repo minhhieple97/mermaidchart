@@ -63,6 +63,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   onBlur={field.onBlur}
                   name={field.name}
                   ref={field.ref}
+                  className="h-11 sm:h-10"
                 />
               </FormControl>
               <FormMessage />
@@ -92,6 +93,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   onBlur={field.onBlur}
                   name={field.name}
                   ref={field.ref}
+                  className="h-11 sm:h-10"
                 />
               </FormControl>
               <FormMessage />
@@ -99,7 +101,11 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button
+          type="submit"
+          className="w-full h-11 sm:h-10"
+          disabled={isLoading}
+        >
           {isLoading && (
             <svg
               className="mr-2 h-4 w-4 animate-spin"

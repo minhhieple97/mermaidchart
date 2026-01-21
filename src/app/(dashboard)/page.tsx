@@ -84,22 +84,27 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="max-w-screen-xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-screen-xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-              <FolderKanban className="h-6 w-6 text-blue-600" />
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-              <p className="text-gray-500 mt-0.5">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Projects
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">
                 {projects?.length || 0} project
                 {projects?.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="gap-2 w-full sm:w-auto"
+          >
             <Plus className="h-4 w-4" />
             New Project
           </Button>

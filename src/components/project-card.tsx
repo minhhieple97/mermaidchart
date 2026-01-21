@@ -61,18 +61,18 @@ export function ProjectCard({ project, onClick, onDelete }: ProjectCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-shadow hover:shadow-md"
+      className="cursor-pointer transition-all hover:shadow-md active:scale-[0.98] touch-manipulation"
       onClick={onClick}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold truncate pr-2">
+      <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg font-semibold truncate flex-1">
             {project.name}
           </CardTitle>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive flex-shrink-0 -mr-2"
             onClick={handleDelete}
             aria-label={`Delete project ${project.name}`}
           >
@@ -80,8 +80,8 @@ export function ProjectCard({ project, onClick, onDelete }: ProjectCardProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <CardDescription className="flex flex-col gap-1">
+      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+        <CardDescription className="flex flex-col gap-1 text-sm">
           <span>
             {diagramCount} {diagramCount === 1 ? 'diagram' : 'diagrams'}
           </span>

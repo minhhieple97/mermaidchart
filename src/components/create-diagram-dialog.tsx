@@ -51,7 +51,7 @@ export function CreateDiagramDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Diagram</DialogTitle>
           <DialogDescription>
@@ -72,22 +72,28 @@ export function CreateDiagramDialog({
                       placeholder="My Flow Chart"
                       {...field}
                       disabled={isLoading}
+                      className="h-11 sm:h-10"
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
                 disabled={isLoading}
+                className="w-full sm:w-auto h-11 sm:h-10"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full sm:w-auto h-11 sm:h-10"
+              >
                 {isLoading ? 'Creating...' : 'Create Diagram'}
               </Button>
             </DialogFooter>

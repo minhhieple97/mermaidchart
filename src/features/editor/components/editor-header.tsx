@@ -12,6 +12,8 @@ import {
   User,
   LogOut,
   GitBranch,
+  Menu,
+  Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,7 +56,7 @@ export function EditorHeader({
   onSignOut,
 }: EditorHeaderProps) {
   return (
-    <header className="h-14 border-b bg-white flex items-center justify-between px-4 flex-shrink-0">
+    <header className="h-14 border-b bg-white flex items-center justify-between px-2 sm:px-4 flex-shrink-0">
       <HeaderLeft
         projectId={projectId}
         projectName={projectName}
@@ -88,24 +90,24 @@ function HeaderLeft({
   diagramName: string;
 }) {
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
       <Link
         href="/"
-        className="flex items-center gap-2 font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+        className="flex items-center gap-2 font-semibold text-gray-900 hover:text-gray-700 transition-colors flex-shrink-0"
       >
         <GitBranch className="h-5 w-5 text-blue-600" />
-        <span className="hidden sm:inline">Mermaid Preview</span>
+        <span className="hidden md:inline">Mermaid Preview</span>
       </Link>
-      <div className="h-6 w-px bg-gray-200" />
-      <nav className="flex items-center gap-1.5 text-sm">
+      <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+      <nav className="flex items-center gap-1 sm:gap-1.5 text-sm min-w-0">
         <Link
           href={`/projects/${projectId}`}
-          className="text-gray-500 hover:text-gray-900 transition-colors max-w-[150px] truncate"
+          className="text-gray-500 hover:text-gray-900 transition-colors max-w-[80px] sm:max-w-[150px] truncate hidden sm:inline"
         >
           {projectName || 'Project'}
         </Link>
-        <ChevronRight className="h-4 w-4 text-gray-300" />
-        <span className="font-medium text-gray-900 max-w-[200px] truncate">
+        <ChevronRight className="h-4 w-4 text-gray-300 hidden sm:block flex-shrink-0" />
+        <span className="font-medium text-gray-900 max-w-[120px] sm:max-w-[200px] truncate">
           {diagramName}
         </span>
       </nav>
@@ -123,7 +125,7 @@ function SaveStatus({
   updatedAt: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
       {isSaving ? (
         <>
           <Save className="h-3.5 w-3.5 animate-pulse" />
@@ -132,10 +134,15 @@ function SaveStatus({
       ) : lastSaved ? (
         <>
           <Check className="h-3.5 w-3.5 text-green-500" />
-          <span>Saved {lastSaved.toLocaleTimeString()}</span>
+          <span className="hidden md:inline">
+            Saved {lastSaved.toLocaleTimeString()}
+          </span>
+          <span className="md:hidden">Saved</span>
         </>
       ) : (
-        <span>Last saved {new Date(updatedAt).toLocaleTimeString()}</span>
+        <span className="hidden md:inline">
+          Last saved {new Date(updatedAt).toLocaleTimeString()}
+        </span>
       )}
     </div>
   );
@@ -159,13 +166,53 @@ function HeaderRight({
   onSignOut: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <VisibilityToggleButton
-        isPublic={isPublic}
-        isSaving={isVisibilitySaving}
-        onClick={onToggleVisibility}
-      />
-      {isPublic && <CopyLinkButton copied={copied} onClick={onCopyLink} />}
+    <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+      {/* Desktop: Individual buttons */}
+      <div className="hidden sm:flex items-center gap-2">
+        <VisibilityToggleButton
+          isPublic={isPublic}
+          isSaving={isVisibilitySaving}
+          onClick={onToggleVisibility}
+        />
+        {isPublic && <CopyLinkButton copied={copied} onClick={onCopyLink} />}
+      </div>
+
+      {/* Mobile: Share dropdown */}
+      <div className="sm:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={onToggleVisibility}
+              disabled={isVisibilitySaving}
+            >
+              {isVisibilitySaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : isPublic ? (
+                <Globe className="mr-2 h-4 w-4 text-green-500" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
+              )}
+              {isPublic ? 'Make Private' : 'Make Public'}
+            </DropdownMenuItem>
+            {isPublic && (
+              <DropdownMenuItem onClick={onCopyLink}>
+                {copied ? (
+                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                ) : (
+                  <Link2 className="mr-2 h-4 w-4" />
+                )}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <UserMenu isSigningOut={isSigningOut} onSignOut={onSignOut} />
     </div>
   );

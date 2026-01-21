@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, GripHorizontal, Code, Eye } from 'lucide-react';
 import { CodeEditor } from './code-editor';
 import { PreviewPane } from './preview-pane';
 import { AIFixButton } from './ai-fix-button';
@@ -15,6 +15,20 @@ interface SplitPaneEditorProps {
   onCodeChange: (code: string) => void;
   disabled?: boolean;
   diagramName: string;
+}
+
+// Hook to detect mobile viewport
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
 }
 
 export const SplitPaneEditor = memo(function SplitPaneEditor({
@@ -34,6 +48,8 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
   } = useAIFix();
   const { toast } = useToast();
 
+  const isMobile = useIsMobile();
+  const [activePane, setActivePane] = useState<'code' | 'preview'>('code');
   const [originalCodeForFix, setOriginalCodeForFix] = useState('');
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [isDragging, setIsDragging] = useState(false);
@@ -47,7 +63,7 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
 
   // Handle resize drag - use functional setState for stable callback
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging || isMobile) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const container = containerRef.current;
@@ -73,7 +89,7 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isDragging]);
+  }, [isDragging, isMobile]);
 
   // Handle AI fix button click
   const handleFixClick = useCallback(() => {
@@ -133,6 +149,86 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
     [splitRatio],
   );
 
+  // Mobile layout with tab switching
+  if (isMobile) {
+    return (
+      <>
+        <div className="flex flex-col h-full">
+          {/* Mobile Tab Bar */}
+          <div className="flex border-b bg-gray-100 flex-shrink-0">
+            <button
+              onClick={() => setActivePane('code')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+                activePane === 'code'
+                  ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Code className="h-4 w-4" />
+              Code
+              {hasError && <span className="w-2 h-2 rounded-full bg-red-500" />}
+            </button>
+            <button
+              onClick={() => setActivePane('preview')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+                activePane === 'preview'
+                  ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Eye className="h-4 w-4" />
+              Preview
+            </button>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="flex-1 overflow-hidden">
+            {activePane === 'code' ? (
+              <div className="flex flex-col h-full">
+                <div className="h-11 px-4 flex items-center justify-between border-b bg-gray-100 flex-shrink-0">
+                  <span className="text-sm font-semibold text-gray-700">
+                    Code
+                  </span>
+                  <AIFixButton
+                    visible={hasError}
+                    onClick={handleFixClick}
+                    isLoading={isFixing}
+                  />
+                </div>
+                <div className="flex-1 overflow-hidden bg-white">
+                  <CodeEditor
+                    value={code}
+                    onChange={onCodeChange}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+            ) : (
+              <PreviewPane
+                svg={svg}
+                error={error}
+                isRendering={isRendering}
+                diagramName={diagramName}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* AI Fix Modal */}
+        <AIFixModal
+          isOpen={showFixModal}
+          onClose={handleCloseModal}
+          originalCode={originalCodeForFix}
+          fixedCode={fixedCode || ''}
+          explanation={explanation || ''}
+          onAccept={handleAcceptFix}
+          onReject={handleRejectFix}
+        />
+      </>
+    );
+  }
+
+  // Desktop layout with resizable split pane
   return (
     <>
       <div

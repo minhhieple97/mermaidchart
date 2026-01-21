@@ -43,20 +43,22 @@ export function DiagramCard({
 
   return (
     <Card
-      className="group cursor-pointer hover:shadow-md transition-shadow"
+      className="group cursor-pointer hover:shadow-md active:scale-[0.98] transition-all touch-manipulation"
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 p-4 sm:p-6 sm:pb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-          <h3 className="font-semibold truncate">{diagram.name}</h3>
+          <h3 className="font-semibold text-sm sm:text-base truncate">
+            {diagram.name}
+          </h3>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-9 w-9 sm:h-8 sm:w-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-2"
             >
               <MoreVertical className="h-4 w-4" />
               <span className="sr-only">Open menu</span>
@@ -87,8 +89,8 @@ export function DiagramCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
+      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Last modified {formattedDate}
         </p>
       </CardContent>
