@@ -44,6 +44,39 @@ CREATE TABLE diagrams (
 );
 ```
 
+### User Credits Table
+
+```sql
+CREATE TABLE user_credits (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  balance INTEGER NOT NULL DEFAULT 50 CHECK (balance >= 0),
+  lifetime_used INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Credit Transactions Table
+
+```sql
+CREATE TABLE credit_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL, -- Negative for usage, positive for additions
+  balance_after INTEGER NOT NULL,
+  transaction_type VARCHAR(50) NOT NULL, -- 'ai_fix', 'purchase', 'bonus', 'refund', 'initial'
+  reference_id UUID, -- Optional: link to diagram_id or other entity
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Credit Database Functions
+
+- `initialize_user_credits(p_user_id)` - Creates credit record with 50 initial credits
+- `deduct_credits(p_user_id, p_amount, p_transaction_type, p_reference_id, p_metadata)` - Atomic credit deduction
+- `add_credits(p_user_id, p_amount, p_transaction_type, p_reference_id, p_metadata)` - Add credits (purchases, bonuses)
+
 ## Row Level Security (RLS)
 
 All tables have RLS enabled. Users can only access their own data:
@@ -62,6 +95,15 @@ CREATE POLICY "Users can CRUD own diagrams"
 CREATE POLICY "Public diagrams are viewable"
   ON diagrams FOR SELECT
   USING (is_public = true);
+
+-- Credits: users can only view their own credit data
+CREATE POLICY "Users can view own credits"
+  ON user_credits FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own transactions"
+  ON credit_transactions FOR SELECT
+  USING (auth.uid() = user_id);
 ```
 
 ## Type Generation

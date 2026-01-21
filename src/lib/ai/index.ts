@@ -14,9 +14,9 @@ import { env, type AIProvider } from '@/env';
 // Provider-specific model configurations
 export const AI_MODELS = {
   google: {
-    default: 'gemini-2.0-flash-exp',
-    fast: 'gemini-2.0-flash-exp',
-    powerful: 'gemini-1.5-pro',
+    default: 'gemini-3-flash-preview',
+    fast: 'gemini-3-flash-preview',
+    powerful: 'gemini-3-flash-preview',
   },
   openai: {
     default: 'gpt-4o-mini',
