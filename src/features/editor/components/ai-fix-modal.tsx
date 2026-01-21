@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +11,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, X, Sparkles } from 'lucide-react';
-import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer-continued';
+import { Check, X, Sparkles, Loader2 } from 'lucide-react';
+import { DiffMethod } from 'react-diff-viewer-continued';
+
+// Dynamic import react-diff-viewer to reduce initial bundle (~100KB savings)
+const ReactDiffViewer = dynamic(
+  () => import('react-diff-viewer-continued').then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    ),
+  },
+);
 
 interface AIFixModalProps {
   isOpen: boolean;
@@ -22,7 +37,48 @@ interface AIFixModalProps {
   onReject: () => void;
 }
 
-export function AIFixModal({
+// Hoist static styles outside component to avoid recreation on each render
+const diffStyles = {
+  variables: {
+    light: {
+      diffViewerBackground: '#ffffff',
+      addedBackground: '#dcfce7',
+      addedColor: '#166534',
+      removedBackground: '#fee2e2',
+      removedColor: '#991b1b',
+      wordAddedBackground: '#86efac',
+      wordRemovedBackground: '#fca5a5',
+      addedGutterBackground: '#bbf7d0',
+      removedGutterBackground: '#fecaca',
+      gutterBackground: '#f9fafb',
+      gutterBackgroundDark: '#f3f4f6',
+      highlightBackground: '#fef9c3',
+      highlightGutterBackground: '#fef08a',
+    },
+  },
+  contentText: {
+    fontFamily:
+      'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    fontSize: '13px',
+    lineHeight: '1.6',
+  },
+  titleBlock: {
+    fontWeight: 600,
+    fontSize: '13px',
+    padding: '10px 16px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#f9fafb',
+  },
+  line: {
+    padding: '2px 10px',
+  },
+  gutter: {
+    padding: '0 10px',
+    minWidth: '40px',
+  },
+} as const;
+
+export const AIFixModal = memo(function AIFixModal({
   isOpen,
   onClose,
   originalCode,
@@ -76,45 +132,7 @@ export function AIFixModal({
               leftTitle="❌ Original (with error)"
               rightTitle="✅ Fixed (AI suggestion)"
               compareMethod={DiffMethod.LINES}
-              styles={{
-                variables: {
-                  light: {
-                    diffViewerBackground: '#ffffff',
-                    addedBackground: '#dcfce7',
-                    addedColor: '#166534',
-                    removedBackground: '#fee2e2',
-                    removedColor: '#991b1b',
-                    wordAddedBackground: '#86efac',
-                    wordRemovedBackground: '#fca5a5',
-                    addedGutterBackground: '#bbf7d0',
-                    removedGutterBackground: '#fecaca',
-                    gutterBackground: '#f9fafb',
-                    gutterBackgroundDark: '#f3f4f6',
-                    highlightBackground: '#fef9c3',
-                    highlightGutterBackground: '#fef08a',
-                  },
-                },
-                contentText: {
-                  fontFamily:
-                    'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '13px',
-                  lineHeight: '1.6',
-                },
-                titleBlock: {
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  padding: '10px 16px',
-                  borderBottom: '1px solid #e5e7eb',
-                  background: '#f9fafb',
-                },
-                line: {
-                  padding: '2px 10px',
-                },
-                gutter: {
-                  padding: '0 10px',
-                  minWidth: '40px',
-                },
-              }}
+              styles={diffStyles}
             />
           </div>
         </div>
@@ -135,4 +153,4 @@ export function AIFixModal({
       </DialogContent>
     </Dialog>
   );
-}
+});

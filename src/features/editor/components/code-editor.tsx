@@ -1,7 +1,21 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { useCallback, useRef, memo } from 'react';
+import dynamic from 'next/dynamic';
+import type { OnMount } from '@monaco-editor/react';
+
+// Dynamic import Monaco to reduce initial bundle size (~300KB savings)
+const Editor = dynamic(
+  () => import('@monaco-editor/react').then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+        Loading editor...
+      </div>
+    ),
+  },
+);
 
 interface CodeEditorProps {
   value: string;
@@ -9,7 +23,7 @@ interface CodeEditorProps {
   disabled?: boolean;
 }
 
-export function CodeEditor({
+export const CodeEditor = memo(function CodeEditor({
   value,
   onChange,
   disabled = false,
@@ -49,11 +63,6 @@ export function CodeEditor({
         cursorBlinking: 'smooth',
         smoothScrolling: true,
       }}
-      loading={
-        <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-          Loading editor...
-        </div>
-      }
     />
   );
-}
+});

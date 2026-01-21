@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { GripVertical } from 'lucide-react';
 import { CodeEditor } from './code-editor';
 import { PreviewPane } from './preview-pane';
@@ -17,7 +17,7 @@ interface SplitPaneEditorProps {
   diagramName: string;
 }
 
-export function SplitPaneEditor({
+export const SplitPaneEditor = memo(function SplitPaneEditor({
   code,
   onCodeChange,
   disabled = false,
@@ -45,13 +45,14 @@ export function SplitPaneEditor({
     return Boolean(fixedCode && !isFixing && !modalDismissed);
   }, [fixedCode, isFixing, modalDismissed]);
 
-  // Handle resize drag
+  // Handle resize drag - use functional setState for stable callback
   useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
       const newRatio = Math.max(
         0.2,
         Math.min(0.8, (e.clientX - rect.left) / rect.width),
@@ -94,7 +95,7 @@ export function SplitPaneEditor({
     }
   }, [aiError, toast, reset]);
 
-  // Handle accepting the fix
+  // Handle accepting the fix - use functional pattern for stable callback
   const handleAcceptFix = useCallback(() => {
     if (fixedCode) {
       onCodeChange(fixedCode);
@@ -118,6 +119,20 @@ export function SplitPaneEditor({
     setModalDismissed(true);
   }, []);
 
+  // Stable callback for drag start
+  const handleDragStart = useCallback(() => setIsDragging(true), []);
+
+  // Memoize style calculations to avoid object recreation
+  const leftPaneStyle = useMemo(
+    () => ({ width: `calc(${splitRatio * 100}% - 6px)`, height: '100%' }),
+    [splitRatio],
+  );
+
+  const rightPaneStyle = useMemo(
+    () => ({ width: `calc(${(1 - splitRatio) * 100}% - 6px)`, height: '100%' }),
+    [splitRatio],
+  );
+
   return (
     <>
       <div
@@ -126,10 +141,7 @@ export function SplitPaneEditor({
         style={{ height: '100%' }}
       >
         {/* Left: Code Editor */}
-        <div
-          className="flex flex-col"
-          style={{ width: `calc(${splitRatio * 100}% - 6px)`, height: '100%' }}
-        >
+        <div className="flex flex-col" style={leftPaneStyle}>
           <div className="h-11 px-4 flex items-center justify-between border-b bg-gray-100 flex-shrink-0">
             <span className="text-sm font-semibold text-gray-700">Code</span>
             <AIFixButton
@@ -156,7 +168,7 @@ export function SplitPaneEditor({
                 : 'bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 hover:from-blue-400 hover:via-blue-500 hover:to-blue-400'
             }`}
           style={{ height: '100%' }}
-          onMouseDown={() => setIsDragging(true)}
+          onMouseDown={handleDragStart}
           title="Drag to resize panels"
         >
           <div
@@ -167,13 +179,7 @@ export function SplitPaneEditor({
         </div>
 
         {/* Right: Preview */}
-        <div
-          className="flex flex-col"
-          style={{
-            width: `calc(${(1 - splitRatio) * 100}% - 6px)`,
-            height: '100%',
-          }}
-        >
+        <div className="flex flex-col" style={rightPaneStyle}>
           <PreviewPane
             svg={svg}
             error={error}
@@ -195,4 +201,4 @@ export function SplitPaneEditor({
       />
     </>
   );
-}
+});

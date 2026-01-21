@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Loader2, AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useExport } from '../hooks/use-export';
@@ -11,7 +12,7 @@ interface PreviewPaneProps {
   diagramName: string;
 }
 
-export function PreviewPane({
+export const PreviewPane = memo(function PreviewPane({
   svg,
   error,
   isRendering,
@@ -96,4 +97,4 @@ export function PreviewPane({
       </div>
     </div>
   );
-}
+});
