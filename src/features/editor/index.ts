@@ -10,6 +10,7 @@ export { PreviewPane } from './components/preview-pane';
 export { AIFixButton } from './components/ai-fix-button';
 export { AIFixModal } from './components/ai-fix-modal';
 export { ExportToolbar } from './components/export-toolbar';
+export { EditorHeader } from './components/editor-header';
 
 // Hooks
 export { useMermaidRenderer } from './hooks/use-mermaid-renderer';
@@ -17,6 +18,7 @@ export { useAutoSave } from './hooks/use-auto-save';
 export { useSplitPane } from './hooks/use-split-pane';
 export { useAIFix } from './hooks/use-ai-fix';
 export { useExport } from './hooks/use-export';
+export { useDiagramEditor } from './hooks/use-diagram-editor';
 
 // Types
 export type {
