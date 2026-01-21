@@ -1,13 +1,8 @@
 'use server';
 
-import { z } from 'zod';
 import { authAction, ActionError } from '@/lib/safe-action';
 import { verifyDiagramOwnership, updateDiagramVisibility } from '@/queries';
-
-const toggleVisibilitySchema = z.object({
-  diagramId: z.string().uuid(),
-  isPublic: z.boolean(),
-});
+import { toggleVisibilitySchema } from '@/lib/validations';
 
 export const toggleVisibilityAction = authAction
   .inputSchema(toggleVisibilitySchema)

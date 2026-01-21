@@ -10,10 +10,6 @@
  * - 3.3: Display validation error for empty name
  */
 
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -32,18 +28,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useCreateDiagram } from '@/hooks/use-diagrams';
-import { useToast } from '@/hooks/use-toast';
-
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Diagram name is required')
-    .max(255, 'Diagram name must be less than 255 characters')
-    .trim(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { useCreateDiagramForm } from '@/hooks/use-create-diagram';
 
 export interface CreateDiagramDialogProps {
   projectId: string;
@@ -58,44 +43,14 @@ export function CreateDiagramDialog({
   onOpenChange,
   onSuccess,
 }: CreateDiagramDialogProps) {
-  const { createDiagram, isLoading, result } = useCreateDiagram();
-  const { toast } = useToast();
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-    },
+  const { form, isLoading, onSubmit, handleClose } = useCreateDiagramForm({
+    projectId,
+    onSuccess,
+    onOpenChange,
   });
 
-  // Handle result
-  useEffect(() => {
-    if (result?.data?.success && result.data.diagram) {
-      toast({
-        title: 'Diagram created',
-        description: 'Your diagram has been created successfully.',
-      });
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.(result.data.diagram.id);
-    } else if (result?.serverError) {
-      toast({
-        title: 'Failed to create diagram',
-        description: result.serverError,
-        variant: 'destructive',
-      });
-    }
-  }, [result, toast, form, onOpenChange, onSuccess]);
-
-  const onSubmit = (values: FormValues) => {
-    createDiagram({
-      projectId,
-      name: values.name,
-    });
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Diagram</DialogTitle>
@@ -127,7 +82,7 @@ export function CreateDiagramDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 disabled={isLoading}
               >
                 Cancel

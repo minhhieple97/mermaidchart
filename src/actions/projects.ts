@@ -1,29 +1,12 @@
 'use server';
 
 import { authAction, ActionError } from '@/lib/safe-action';
-import { z } from 'zod';
 import { createProject, updateProject, deleteProject } from '@/queries';
-
-const createProjectSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Project name is required')
-    .max(255, 'Project name must be less than 255 characters')
-    .trim(),
-});
-
-const updateProjectSchema = z.object({
-  id: z.string().uuid('Invalid project ID'),
-  name: z
-    .string()
-    .min(1, 'Project name is required')
-    .max(255, 'Project name must be less than 255 characters')
-    .trim(),
-});
-
-const deleteProjectSchema = z.object({
-  id: z.string().uuid('Invalid project ID'),
-});
+import {
+  createProjectSchema,
+  updateProjectSchema,
+  deleteProjectSchema,
+} from '@/lib/validations';
 
 /**
  * Create a new project for the authenticated user

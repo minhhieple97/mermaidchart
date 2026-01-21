@@ -1,28 +1,23 @@
 /**
  * Authentication types
+ * Re-exports schemas from centralized validations
  */
 
-import { z } from 'zod';
-
-/** Minimum password length */
-const MIN_PASSWORD_LENGTH = 6;
+import {
+  loginSchema,
+  signupSchema,
+  type LoginFormValues,
+  type SignupFormValues,
+} from '@/lib/validations';
 
 /** Authentication mode */
 export type AuthMode = 'login' | 'signup';
 
-/** Form validation schema */
-export const authFormSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z
-    .string()
-    .min(
-      MIN_PASSWORD_LENGTH,
-      `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
-    ),
-});
+/** Re-export schemas for use in auth feature */
+export { loginSchema, signupSchema };
 
-/** Form values type */
-export type AuthFormValues = z.infer<typeof authFormSchema>;
+/** Form values type - union of login and signup (they have same shape) */
+export type AuthFormValues = LoginFormValues | SignupFormValues;
 
 /** Auth form props */
 export interface AuthFormProps {

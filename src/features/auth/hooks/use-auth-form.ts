@@ -7,6 +7,7 @@ import { useAction } from 'next-safe-action/hooks';
 import { useRouter } from 'next/navigation';
 import { signInAction, signUpAction } from '@/actions/auth';
 import { useToast } from '@/hooks/use-toast';
+import { loginSchema, signupSchema } from '@/lib/validations';
 import {
   AUTH_REDIRECT_DELAY_MS,
   DASHBOARD_ROUTE,
@@ -14,7 +15,6 @@ import {
   AUTH_ERROR_MESSAGES,
 } from '../constants/auth.constants';
 import { getAuthErrorMessage } from '../utils/auth-error.utils';
-import { authFormSchema } from '../types/auth.types';
 import type { AuthMode, AuthFormValues } from '../types/auth.types';
 
 interface UseAuthFormOptions {
@@ -30,8 +30,12 @@ export function useAuthForm({ mode }: UseAuthFormOptions) {
   const signInExec = useAction(signInAction);
   const signUpExec = useAction(signUpAction);
 
+  // Use different schema based on mode
+  // Signup requires strong password, login is more lenient
+  const schema = mode === 'signup' ? signupSchema : loginSchema;
+
   const form = useForm<AuthFormValues>({
-    resolver: zodResolver(authFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       email: '',
       password: '',

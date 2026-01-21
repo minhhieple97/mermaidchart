@@ -16,7 +16,7 @@ export type {
   AuthFormValues,
   AuthFormProps,
 } from './types/auth.types';
-export { authFormSchema } from './types/auth.types';
+export { loginSchema, signupSchema } from './types/auth.types';
 
 // Constants
 export {

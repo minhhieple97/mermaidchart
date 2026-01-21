@@ -2,18 +2,14 @@
 
 import { action, ActionError } from '@/lib/safe-action';
 import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
-
-const authSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+import { loginSchema, signupSchema } from '@/lib/validations';
 
 /**
  * Sign in action - authenticates a user with email and password.
+ * Uses loginSchema (less strict password validation for existing accounts)
  */
 export const signInAction = action
-  .inputSchema(authSchema)
+  .inputSchema(loginSchema)
   .action(async ({ parsedInput: { email, password } }) => {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -30,10 +26,11 @@ export const signInAction = action
 
 /**
  * Sign up action - creates a new user account with email and password.
+ * Uses signupSchema (strong password validation for new accounts)
  * Credits are initialized manually after successful signup.
  */
 export const signUpAction = action
-  .inputSchema(authSchema)
+  .inputSchema(signupSchema)
   .action(async ({ parsedInput: { email, password } }) => {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signUp({

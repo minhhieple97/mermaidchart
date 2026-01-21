@@ -1,32 +1,12 @@
 'use server';
 
 import { authAction, ActionError } from '@/lib/safe-action';
-import { z } from 'zod';
 import { createDiagram, updateDiagram, deleteDiagram } from '@/queries';
-
-const createDiagramSchema = z.object({
-  projectId: z.string().uuid('Invalid project ID'),
-  name: z
-    .string()
-    .min(1, 'Diagram name is required')
-    .max(255, 'Diagram name must be less than 255 characters')
-    .trim(),
-});
-
-const updateDiagramSchema = z.object({
-  id: z.string().uuid('Invalid diagram ID'),
-  name: z
-    .string()
-    .min(1, 'Diagram name is required')
-    .max(255, 'Diagram name must be less than 255 characters')
-    .trim()
-    .optional(),
-  code: z.string().max(100000, 'Diagram code is too large').optional(),
-});
-
-const deleteDiagramSchema = z.object({
-  id: z.string().uuid('Invalid diagram ID'),
-});
+import {
+  createDiagramSchema,
+  updateDiagramSchema,
+  deleteDiagramSchema,
+} from '@/lib/validations';
 
 /**
  * Create a new diagram with default template code
