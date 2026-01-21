@@ -4,7 +4,7 @@
  * Custom hook for authentication form logic
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAction } from 'next-safe-action/hooks';
@@ -47,75 +47,117 @@ export function useAuthForm({ mode }: UseAuthFormOptions) {
     signUpExec.status === 'executing' ||
     isRedirecting;
 
-  const clearServerError = useCallback(() => {
+  const clearServerError = () => {
     setServerError(null);
-  }, []);
+  };
 
-  const handleSuccess = useCallback(
-    (isSignup: boolean) => {
-      setServerError(null);
-      setIsRedirecting(true);
+  const handleSuccess = (isSignup: boolean) => {
+    setServerError(null);
+    setIsRedirecting(true);
 
-      const messages = isSignup
-        ? AUTH_SUCCESS_MESSAGES.SIGNUP
-        : AUTH_SUCCESS_MESSAGES.LOGIN;
+    const messages = isSignup
+      ? AUTH_SUCCESS_MESSAGES.SIGNUP
+      : AUTH_SUCCESS_MESSAGES.LOGIN;
 
-      toast({
-        title: messages.title,
-        description: messages.description,
-      });
+    toast({
+      title: messages.title,
+      description: messages.description,
+    });
 
-      setTimeout(() => {
-        router.push(DASHBOARD_ROUTE);
-        router.refresh();
-      }, AUTH_REDIRECT_DELAY_MS);
-    },
-    [toast, router],
-  );
+    setTimeout(() => {
+      router.push(DASHBOARD_ROUTE);
+      router.refresh();
+    }, AUTH_REDIRECT_DELAY_MS);
+  };
 
-  const handleError = useCallback(
-    (error: string) => {
-      const friendlyMessage = getAuthErrorMessage(error, mode);
-      setServerError(friendlyMessage);
-    },
-    [mode],
-  );
+  const handleError = (error: string) => {
+    const friendlyMessage = getAuthErrorMessage(error, mode);
+    setServerError(friendlyMessage);
+  };
 
-  const onSubmit = useCallback(
-    async (values: AuthFormValues) => {
-      setServerError(null);
+  const onSubmit = async (values: AuthFormValues) => {
+    console.log('Form submitted with values:', values);
+    setServerError(null);
 
-      try {
-        if (mode === 'signup') {
-          const signupResult = await signUpExec.executeAsync(values);
+    try {
+      if (mode === 'signup') {
+        console.log('Executing signup...');
+        const signupResult = await signUpExec.executeAsync(values);
+        console.log('Signup result:', signupResult);
 
-          if (signupResult?.data?.error) {
-            handleError(signupResult.data.error);
+        // Handle validation errors from next-safe-action
+        if (signupResult?.validationErrors) {
+          const errors = signupResult.validationErrors;
+          const firstError = Object.values(errors).flat()[0];
+          if (firstError) {
+            setServerError(String(firstError));
             return;
           }
+        }
 
-          if (signupResult?.data?.success) {
-            const loginResult = await signInExec.executeAsync(values);
-            if (loginResult?.data?.success) {
-              handleSuccess(true);
-            } else if (loginResult?.data?.error) {
-              handleError(loginResult.data.error);
-            }
+        // Handle server errors
+        if (signupResult?.serverError) {
+          setServerError(String(signupResult.serverError));
+          return;
+        }
+
+        if (signupResult?.data?.error) {
+          handleError(signupResult.data.error);
+          return;
+        }
+
+        if (signupResult?.data?.success) {
+          console.log('Signup successful, logging in...');
+          const loginResult = await signInExec.executeAsync(values);
+          console.log('Login result:', loginResult);
+
+          if (loginResult?.data?.success) {
+            handleSuccess(true);
+          } else if (loginResult?.data?.error) {
+            handleError(loginResult.data.error);
+          } else {
+            // Login failed silently - still show success for signup
+            handleSuccess(true);
           }
         } else {
-          const result = await signInExec.executeAsync(values);
-          if (result?.data?.success) {
-            handleSuccess(false);
-          } else if (result?.data?.error) {
-            handleError(result.data.error);
+          // No success and no error - something unexpected happened
+          console.log('Unexpected signup result');
+          setServerError(AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
+        }
+      } else {
+        console.log('Executing login...');
+        const result = await signInExec.executeAsync(values);
+        console.log('Login result:', result);
+
+        // Handle validation errors
+        if (result?.validationErrors) {
+          const errors = result.validationErrors;
+          const firstError = Object.values(errors).flat()[0];
+          if (firstError) {
+            setServerError(String(firstError));
+            return;
           }
         }
-      } catch {
-        setServerError(AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
+
+        // Handle server errors
+        if (result?.serverError) {
+          setServerError(String(result.serverError));
+          return;
+        }
+
+        if (result?.data?.success) {
+          handleSuccess(false);
+        } else if (result?.data?.error) {
+          handleError(result.data.error);
+        } else {
+          setServerError(AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
+        }
       }
-    },
-    [mode, signUpExec, signInExec, handleSuccess, handleError],
-  );
+    } catch (err) {
+      console.error('Auth error:', err);
+      setServerError(AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
+    }
+  };
 
   return {
     form,

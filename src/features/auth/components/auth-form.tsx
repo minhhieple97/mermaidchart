@@ -1,7 +1,7 @@
 'use client';
 
-import { memo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/form';
 import { useAuthForm } from '../hooks/use-auth-form';
 import { AuthErrorAlert } from './auth-error-alert';
-import { AuthSubmitButton } from './auth-submit-button';
 import { AUTH_PLACEHOLDERS } from '../constants/auth.constants';
 import type { AuthMode } from '../types/auth.types';
 
@@ -20,7 +19,7 @@ interface AuthFormProps {
   mode: AuthMode;
 }
 
-export const AuthForm = memo(function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode }: AuthFormProps) {
   const {
     form,
     isLoading,
@@ -30,31 +29,18 @@ export const AuthForm = memo(function AuthForm({ mode }: AuthFormProps) {
     onSubmit,
   } = useAuthForm({ mode });
 
-  const handleEmailChange = useCallback(
-    (
-      e: React.ChangeEvent<HTMLInputElement>,
-      onChange: (value: string) => void,
-    ) => {
-      clearServerError();
-      onChange(e.target.value);
-    },
-    [clearServerError],
-  );
+  const handleSubmit = form.handleSubmit(onSubmit);
 
-  const handlePasswordChange = useCallback(
-    (
-      e: React.ChangeEvent<HTMLInputElement>,
-      onChange: (value: string) => void,
-    ) => {
-      clearServerError();
-      onChange(e.target.value);
-    },
-    [clearServerError],
-  );
+  const getButtonText = () => {
+    if (isRedirecting) return 'Redirecting...';
+    if (isLoading)
+      return mode === 'login' ? 'Signing in...' : 'Creating account...';
+    return mode === 'login' ? 'Sign In' : 'Create Account';
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <AuthErrorAlert message={serverError} />
 
         <FormField
@@ -69,8 +55,14 @@ export const AuthForm = memo(function AuthForm({ mode }: AuthFormProps) {
                   placeholder={AUTH_PLACEHOLDERS.EMAIL}
                   autoComplete="email"
                   disabled={isLoading}
-                  {...field}
-                  onChange={(e) => handleEmailChange(e, field.onChange)}
+                  value={field.value}
+                  onChange={(e) => {
+                    clearServerError();
+                    field.onChange(e.target.value);
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
                 />
               </FormControl>
               <FormMessage />
@@ -92,8 +84,14 @@ export const AuthForm = memo(function AuthForm({ mode }: AuthFormProps) {
                     mode === 'login' ? 'current-password' : 'new-password'
                   }
                   disabled={isLoading}
-                  {...field}
-                  onChange={(e) => handlePasswordChange(e, field.onChange)}
+                  value={field.value}
+                  onChange={(e) => {
+                    clearServerError();
+                    field.onChange(e.target.value);
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
                 />
               </FormControl>
               <FormMessage />
@@ -101,12 +99,31 @@ export const AuthForm = memo(function AuthForm({ mode }: AuthFormProps) {
           )}
         />
 
-        <AuthSubmitButton
-          mode={mode}
-          isLoading={isLoading}
-          isRedirecting={isRedirecting}
-        />
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && (
+            <svg
+              className="mr-2 h-4 w-4 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          )}
+          {getButtonText()}
+        </Button>
       </form>
     </Form>
   );
-});
+}

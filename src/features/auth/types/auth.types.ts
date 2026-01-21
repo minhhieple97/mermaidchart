@@ -3,7 +3,9 @@
  */
 
 import { z } from 'zod';
-import { MIN_PASSWORD_LENGTH } from '../constants/auth.constants';
+
+/** Minimum password length */
+const MIN_PASSWORD_LENGTH = 6;
 
 /** Authentication mode */
 export type AuthMode = 'login' | 'signup';
