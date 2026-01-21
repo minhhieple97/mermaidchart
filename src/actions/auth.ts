@@ -30,7 +30,7 @@ export const signInAction = action
 
 /**
  * Sign up action - creates a new user account with email and password.
- * Credits are initialized via database trigger or on first access.
+ * Credits are initialized manually after successful signup.
  */
 export const signUpAction = action
   .inputSchema(authSchema)
@@ -46,6 +46,20 @@ export const signUpAction = action
 
     if (error) {
       throw new ActionError(error.message);
+    }
+
+    // Initialize credits manually (trigger is disabled)
+    if (data.user) {
+      try {
+        // Try to initialize credits, but don't fail signup if it errors
+        await supabase.rpc('initialize_user_credits', {
+          p_user_id: data.user.id,
+        });
+      } catch (creditError) {
+        // Log error but don't block signup
+        console.error('Failed to initialize credits:', creditError);
+        // Credits will be initialized on first access via getUserCredits
+      }
     }
 
     return { success: true, user: data.user };
