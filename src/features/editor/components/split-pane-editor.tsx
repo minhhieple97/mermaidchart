@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { GripVertical } from 'lucide-react';
 import { CodeEditor } from './code-editor';
 import { PreviewPane } from './preview-pane';
@@ -34,11 +34,16 @@ export function SplitPaneEditor({
   } = useAIFix();
   const { toast } = useToast();
 
-  const [showFixModal, setShowFixModal] = useState(false);
   const [originalCodeForFix, setOriginalCodeForFix] = useState('');
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [isDragging, setIsDragging] = useState(false);
+  const [modalDismissed, setModalDismissed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Derive modal visibility from state
+  const showFixModal = useMemo(() => {
+    return Boolean(fixedCode && !isFixing && !modalDismissed);
+  }, [fixedCode, isFixing, modalDismissed]);
 
   // Handle resize drag
   useEffect(() => {
@@ -69,19 +74,13 @@ export function SplitPaneEditor({
     };
   }, [isDragging]);
 
-  // Handle AI fix button click - call server action
+  // Handle AI fix button click
   const handleFixClick = useCallback(() => {
     if (!error) return;
     setOriginalCodeForFix(code);
+    setModalDismissed(false);
     fixSyntax({ code, errorMessage: error });
   }, [code, error, fixSyntax]);
-
-  // Show modal when AI returns fixed code
-  useEffect(() => {
-    if (fixedCode && !isFixing) {
-      setShowFixModal(true);
-    }
-  }, [fixedCode, isFixing]);
 
   // Show error toast if AI fix fails
   useEffect(() => {
@@ -95,7 +94,7 @@ export function SplitPaneEditor({
     }
   }, [aiError, toast, reset]);
 
-  // Handle accepting the fix - paste into editor
+  // Handle accepting the fix
   const handleAcceptFix = useCallback(() => {
     if (fixedCode) {
       onCodeChange(fixedCode);
@@ -103,16 +102,21 @@ export function SplitPaneEditor({
         title: 'Fix Applied',
         description: 'The AI-suggested fix has been applied to your code.',
       });
+      setModalDismissed(true);
       reset();
-      setShowFixModal(false);
     }
   }, [fixedCode, onCodeChange, toast, reset]);
 
   // Handle rejecting the fix
   const handleRejectFix = useCallback(() => {
+    setModalDismissed(true);
     reset();
-    setShowFixModal(false);
   }, [reset]);
+
+  // Handle modal close
+  const handleCloseModal = useCallback(() => {
+    setModalDismissed(true);
+  }, []);
 
   return (
     <>
@@ -126,7 +130,6 @@ export function SplitPaneEditor({
           className="flex flex-col"
           style={{ width: `calc(${splitRatio * 100}% - 6px)`, height: '100%' }}
         >
-          {/* Editor Header */}
           <div className="h-11 px-4 flex items-center justify-between border-b bg-gray-100 flex-shrink-0">
             <span className="text-sm font-semibold text-gray-700">Code</span>
             <AIFixButton
@@ -135,7 +138,6 @@ export function SplitPaneEditor({
               isLoading={isFixing}
             />
           </div>
-          {/* Editor Content */}
           <div className="flex-1 overflow-hidden bg-white">
             <CodeEditor
               value={code}
@@ -181,10 +183,10 @@ export function SplitPaneEditor({
         </div>
       </div>
 
-      {/* AI Fix Modal - shows diff between original and fixed code */}
+      {/* AI Fix Modal */}
       <AIFixModal
         isOpen={showFixModal}
-        onClose={() => setShowFixModal(false)}
+        onClose={handleCloseModal}
         originalCode={originalCodeForFix}
         fixedCode={fixedCode || ''}
         explanation={explanation || ''}

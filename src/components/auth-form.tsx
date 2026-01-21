@@ -16,13 +16,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-/**
- * Form validation schema for authentication.
- * Validates email format and minimum password length.
- */
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -34,15 +30,6 @@ interface AuthFormProps {
   mode: 'login' | 'signup';
 }
 
-/**
- * AuthForm component - handles both login and signup forms.
- * Uses react-hook-form with zod validation and next-safe-action for server actions.
- *
- * @validates Requirements 1.2, 1.3, 1.4
- * - 1.2: WHEN a user submits valid credentials THEN THE Auth_System SHALL authenticate the user and redirect to the dashboard
- * - 1.3: WHEN a user submits invalid credentials THEN THE Auth_System SHALL display an error message and remain on the login page
- * - 1.4: WHEN a user clicks the sign-up link THEN THE Auth_System SHALL display the registration form
- */
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -50,9 +37,6 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const signInExec = useAction(signInAction);
   const signUpExec = useAction(signUpAction);
-
-  const currentAction = mode === 'login' ? signInExec : signUpExec;
-  const { execute, status, result } = currentAction;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,56 +46,61 @@ export function AuthForm({ mode }: AuthFormProps) {
     },
   });
 
-  const isLoading = status === 'executing' || isRedirecting;
+  const isLoading =
+    signInExec.status === 'executing' ||
+    signUpExec.status === 'executing' ||
+    isRedirecting;
 
-  // Handle successful authentication - redirect to dashboard
-  useEffect(() => {
-    if (result?.data?.success) {
+  const handleSuccess = useCallback(
+    (isSignup: boolean) => {
       setIsRedirecting(true);
-
-      if (mode === 'signup') {
-        toast({
-          title: 'Account created successfully!',
-          description: 'Welcome! Redirecting to your dashboard...',
-        });
-      } else {
-        toast({
-          title: 'Welcome back!',
-          description: 'Redirecting to your dashboard...',
-        });
-      }
-
-      // Small delay for better UX
+      toast({
+        title: isSignup ? 'Account created successfully!' : 'Welcome back!',
+        description: 'Redirecting to your dashboard...',
+      });
       setTimeout(() => {
         router.push('/');
         router.refresh();
       }, 500);
-    }
-  }, [result, router, mode, toast]);
+    },
+    [toast, router],
+  );
 
-  // Handle errors with toast notifications
-  useEffect(() => {
-    if (result?.data?.error) {
+  const handleError = useCallback(
+    (error: string) => {
       toast({
         title: mode === 'login' ? 'Login failed' : 'Signup failed',
-        description: result.data.error,
+        description: error,
         variant: 'destructive',
       });
-    }
-  }, [result, mode, toast]);
+    },
+    [toast, mode],
+  );
 
   const onSubmit = async (values: FormValues) => {
     if (mode === 'signup') {
-      // For signup, execute signup then auto-login
       const signupResult = await signUpExec.executeAsync(values);
 
+      if (signupResult?.data?.error) {
+        handleError(signupResult.data.error);
+        return;
+      }
+
       if (signupResult?.data?.success) {
-        // Auto-login after successful signup
-        await signInExec.executeAsync(values);
+        const loginResult = await signInExec.executeAsync(values);
+        if (loginResult?.data?.success) {
+          handleSuccess(true);
+        } else if (loginResult?.data?.error) {
+          handleError(loginResult.data.error);
+        }
       }
     } else {
-      // For login, just execute login
-      execute(values);
+      const result = await signInExec.executeAsync(values);
+      if (result?.data?.success) {
+        handleSuccess(false);
+      } else if (result?.data?.error) {
+        handleError(result.data.error);
+      }
     }
   };
 
@@ -165,7 +154,6 @@ export function AuthForm({ mode }: AuthFormProps) {
             <span className="flex items-center gap-2">
               <svg
                 className="h-4 w-4 animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
               >
