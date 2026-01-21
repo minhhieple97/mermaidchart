@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { DiagramViewer } from '@/features/sharing';
-import { Lock } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getPublicDiagram } from '@/queries';
 
@@ -58,34 +57,14 @@ export default async function SharePage({ params }: SharePageProps) {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(diagramId)) {
-    return <NotFoundState />;
+    notFound();
   }
 
-  try {
-    const diagram = await getPublicDiagram(diagramId);
-    return <DiagramViewer code={diagram.code} name={diagram.name} />;
-  } catch {
-    return <NotFoundState />;
-  }
-}
+  const diagram = await getPublicDiagram(diagramId).catch(() => null);
 
-/**
- * Not Found State Component
- * Displayed for private or non-existent diagrams
- */
-function NotFoundState() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="text-center p-8 max-w-md">
-        <div className="rounded-full bg-muted p-5 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-          <Lock className="h-10 w-10 text-muted-foreground" />
-        </div>
-        <h1 className="text-2xl font-semibold mb-3">Diagram not available</h1>
-        <p className="text-muted-foreground leading-relaxed">
-          This diagram may have been deleted, made private by its owner, or the
-          link may be incorrect.
-        </p>
-      </div>
-    </div>
-  );
+  if (!diagram) {
+    notFound();
+  }
+
+  return <DiagramViewer code={diagram.code} name={diagram.name} />;
 }
