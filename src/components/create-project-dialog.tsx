@@ -73,10 +73,10 @@ export function CreateProjectDialog({
       });
       form.reset();
       onOpenChange(false);
-    } else if (result?.data?.error) {
+    } else if (result?.serverError) {
       toast({
         title: 'Failed to create project',
-        description: result.data.error,
+        description: result.serverError,
         variant: 'destructive',
       });
     }

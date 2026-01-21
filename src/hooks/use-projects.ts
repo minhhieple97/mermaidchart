@@ -124,13 +124,12 @@ export function useDeleteProject(options?: {
 }) {
   const queryClient = useQueryClient();
   const { execute, status, result } = useAction(deleteProjectAction, {
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
-      if (data?.data?.success) {
-        options?.onSuccess?.();
-      } else if (data?.data?.error) {
-        options?.onError?.(data.data.error);
-      }
+      options?.onSuccess?.();
+    },
+    onError: ({ error }) => {
+      options?.onError?.(error.serverError ?? 'Failed to delete project');
     },
   });
 

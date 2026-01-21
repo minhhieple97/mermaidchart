@@ -78,10 +78,10 @@ export function CreateDiagramDialog({
       form.reset();
       onOpenChange(false);
       onSuccess?.(result.data.diagram.id);
-    } else if (result?.data?.error) {
+    } else if (result?.serverError) {
       toast({
         title: 'Failed to create diagram',
-        description: result.data.error,
+        description: result.serverError,
         variant: 'destructive',
       });
     }

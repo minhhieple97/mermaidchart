@@ -1,18 +1,43 @@
-import { cache } from 'react';
-import { createSafeActionClient } from 'next-safe-action';
+import {
+  createSafeActionClient,
+  DEFAULT_SERVER_ERROR_MESSAGE,
+} from 'next-safe-action';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Base action client for public actions that don't require authentication.
- * Use this for actions like sign-in, sign-up, etc.
+ * Custom error class for action errors
+ * Use this to throw user-friendly error messages from server actions
  */
-export const actionClient = createSafeActionClient();
+export class ActionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ActionError';
+  }
+}
 
 /**
- * Cached auth check using React.cache for per-request deduplication.
- * Multiple calls within the same request will only execute once.
+ * Base action client for public actions that don't require authentication.
+ * Use this for actions like sign-in, sign-up, public data fetching, etc.
  */
-const getAuthenticatedUser = cache(async () => {
+export const action = createSafeActionClient({
+  throwValidationErrors: false,
+  defaultValidationErrorsShape: 'flattened',
+  handleServerError: (error) => {
+    // Return user-friendly message for ActionError
+    if (error instanceof ActionError) {
+      return error.message;
+    }
+    // Log unexpected errors server-side
+    console.error('Server action error:', error);
+    // Return generic message for unexpected errors
+    return DEFAULT_SERVER_ERROR_MESSAGE;
+  },
+});
+
+/**
+ * Get authenticated user from session
+ */
+async function getUserInSession() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,21 +48,26 @@ const getAuthenticatedUser = cache(async () => {
     return null;
   }
 
-  return { user, supabase };
-});
+  return user;
+}
 
 /**
  * Authenticated action client with Supabase middleware.
  * Use this for actions that require a logged-in user.
  * Provides user and supabase client in the context.
- * Uses React.cache for per-request deduplication of auth checks.
  */
-export const authActionClient = actionClient.use(async ({ next }) => {
-  const auth = await getAuthenticatedUser();
+export const authAction = action.use(async ({ next }) => {
+  const user = await getUserInSession();
 
-  if (!auth) {
-    throw new Error('Unauthorized');
+  if (!user) {
+    throw new ActionError('Authentication required. Please sign in.');
   }
 
-  return next({ ctx: auth });
+  const supabase = await createClient();
+
+  return next({ ctx: { user, supabase } });
 });
+
+// Legacy exports for backward compatibility
+export const actionClient = action;
+export const authActionClient = authAction;

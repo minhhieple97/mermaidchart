@@ -1,20 +1,8 @@
 'use server';
 
-// actions/projects.ts
-// Server actions for project management
-// Requirements: 2.2, 2.3, 2.6, 2.7
-
-import { authActionClient } from '@/lib/safe-action';
+import { authAction, ActionError } from '@/lib/safe-action';
 import { z } from 'zod';
 
-// ============================================================================
-// Validation Schemas
-// ============================================================================
-
-/**
- * Schema for creating a new project
- * - name: non-empty, max 255 characters, trimmed
- */
 const createProjectSchema = z.object({
   name: z
     .string()
@@ -23,11 +11,6 @@ const createProjectSchema = z.object({
     .trim(),
 });
 
-/**
- * Schema for updating an existing project
- * - id: valid UUID
- * - name: non-empty, max 255 characters, trimmed
- */
 const updateProjectSchema = z.object({
   id: z.string().uuid('Invalid project ID'),
   name: z
@@ -37,24 +20,15 @@ const updateProjectSchema = z.object({
     .trim(),
 });
 
-/**
- * Schema for deleting a project
- * - id: valid UUID
- */
 const deleteProjectSchema = z.object({
   id: z.string().uuid('Invalid project ID'),
 });
 
-// ============================================================================
-// Server Actions
-// ============================================================================
-
 /**
  * Create a new project for the authenticated user
- * Requirements: 2.2 - Create project with valid name
  */
-export const createProjectAction = authActionClient
-  .schema(createProjectSchema)
+export const createProjectAction = authAction
+  .inputSchema(createProjectSchema)
   .action(async ({ parsedInput: { name }, ctx: { user, supabase } }) => {
     const { data, error } = await supabase
       .from('projects')
@@ -63,7 +37,7 @@ export const createProjectAction = authActionClient
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      throw new ActionError(error.message);
     }
 
     return { success: true, project: data };
@@ -71,10 +45,9 @@ export const createProjectAction = authActionClient
 
 /**
  * Update an existing project's name
- * Requirements: 2.7 - Edit project name
  */
-export const updateProjectAction = authActionClient
-  .schema(updateProjectSchema)
+export const updateProjectAction = authAction
+  .inputSchema(updateProjectSchema)
   .action(async ({ parsedInput: { id, name }, ctx: { supabase } }) => {
     const { data, error } = await supabase
       .from('projects')
@@ -84,7 +57,7 @@ export const updateProjectAction = authActionClient
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      throw new ActionError(error.message);
     }
 
     return { success: true, project: data };
@@ -92,15 +65,14 @@ export const updateProjectAction = authActionClient
 
 /**
  * Delete a project and all associated diagrams (cascade)
- * Requirements: 2.6 - Delete project and associated diagrams
  */
-export const deleteProjectAction = authActionClient
-  .schema(deleteProjectSchema)
+export const deleteProjectAction = authAction
+  .inputSchema(deleteProjectSchema)
   .action(async ({ parsedInput: { id }, ctx: { supabase } }) => {
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
     if (error) {
-      return { success: false, error: error.message };
+      throw new ActionError(error.message);
     }
 
     return { success: true };

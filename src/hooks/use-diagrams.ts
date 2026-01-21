@@ -157,13 +157,12 @@ export function useDeleteDiagram(options?: {
 }) {
   const queryClient = useQueryClient();
   const { execute, status, result } = useAction(deleteDiagramAction, {
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: diagramKeys.lists() });
-      if (data?.data?.success) {
-        options?.onSuccess?.();
-      } else if (data?.data?.error) {
-        options?.onError?.(data.data.error);
-      }
+      options?.onSuccess?.();
+    },
+    onError: ({ error }) => {
+      options?.onError?.(error.serverError ?? 'Failed to delete diagram');
     },
   });
 

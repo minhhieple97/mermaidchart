@@ -41,7 +41,7 @@ export function useAIFix() {
     /** Remaining credits after operation */
     creditsRemaining: result?.data?.creditsRemaining,
     /** Error message (if failed) */
-    error: result?.serverError || result?.data?.error,
+    error: result?.serverError,
     /** Whether the operation was successful */
     isSuccess: result?.data?.success === true,
     /** Reset the state */

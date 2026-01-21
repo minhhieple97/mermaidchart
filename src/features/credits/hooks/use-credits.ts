@@ -1,9 +1,5 @@
 'use client';
 
-/**
- * Hook for managing user credits
- */
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getUserCreditsAction,
@@ -26,12 +22,15 @@ export function useCredits() {
     queryKey: CREDITS_QUERY_KEY,
     queryFn: async () => {
       const result = await getUserCreditsAction({});
+      if (result?.serverError) {
+        throw new Error(result.serverError);
+      }
       if (!result?.data?.success) {
-        throw new Error(result?.data?.error ?? 'Failed to fetch credits');
+        throw new Error('Failed to fetch credits');
       }
       return result.data.credits;
     },
-    staleTime: 30_000, // Cache for 30 seconds
+    staleTime: 30_000,
   });
 
   const deductMutation = useMutation({
@@ -41,13 +40,15 @@ export function useCredits() {
       metadata?: Record<string, unknown>;
     }) => {
       const result = await deductCreditsAction(params);
+      if (result?.serverError) {
+        throw new Error(result.serverError);
+      }
       if (!result?.data?.success) {
-        throw new Error(result?.data?.error ?? 'Failed to deduct credits');
+        throw new Error('Failed to deduct credits');
       }
       return result.data;
     },
     onSuccess: (data) => {
-      // Update cache with new balance
       queryClient.setQueryData(CREDITS_QUERY_KEY, (old: typeof creditsData) =>
         old ? { ...old, balance: data.balance } : old,
       );
