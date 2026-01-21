@@ -11,14 +11,23 @@
  */
 
 import { useAction } from 'next-safe-action/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import { fixMermaidSyntaxAction } from '../actions/ai.actions';
+
+const CREDITS_QUERY_KEY = ['user-credits'];
 
 /**
  * Hook for AI-powered syntax fixing
  * @returns AI fix state and handlers
  */
 export function useAIFix() {
-  const { execute, status, result, reset } = useAction(fixMermaidSyntaxAction);
+  const queryClient = useQueryClient();
+  const { execute, status, result, reset } = useAction(fixMermaidSyntaxAction, {
+    onSuccess: () => {
+      // Invalidate credits cache to refresh balance
+      queryClient.invalidateQueries({ queryKey: CREDITS_QUERY_KEY });
+    },
+  });
 
   return {
     /** Execute the AI fix */
@@ -29,8 +38,12 @@ export function useAIFix() {
     fixedCode: result?.data?.fixedCode,
     /** Explanation of the fix (if successful) */
     explanation: result?.data?.explanation,
+    /** Remaining credits after operation */
+    creditsRemaining: result?.data?.creditsRemaining,
     /** Error message (if failed) */
     error: result?.serverError || result?.data?.error,
+    /** Whether the operation was successful */
+    isSuccess: result?.data?.success === true,
     /** Reset the state */
     reset,
   };

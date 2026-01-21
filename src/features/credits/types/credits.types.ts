@@ -1,26 +1,17 @@
 /**
  * Credit system types
+ * Derived from database.types.ts as single source of truth
  */
 
-export interface UserCredits {
-  user_id: string;
-  balance: number;
-  lifetime_used: number;
-  created_at: string;
-  updated_at: string;
-}
+import type { Tables, Database } from '@/types/database.types';
 
-export interface CreditTransaction {
-  id: string;
-  user_id: string;
-  amount: number;
-  balance_after: number;
-  transaction_type: CreditTransactionType;
-  reference_id: string | null;
-  metadata: Record<string, unknown>;
-  created_at: string;
-}
+/** User credits row from database */
+export type UserCredits = Tables<'user_credits'>;
 
+/** Credit transaction row from database */
+export type CreditTransaction = Tables<'credit_transactions'>;
+
+/** Transaction type values */
 export type CreditTransactionType =
   | 'ai_fix'
   | 'purchase'
@@ -28,16 +19,13 @@ export type CreditTransactionType =
   | 'refund'
   | 'initial';
 
-export interface DeductCreditsResult {
-  success: boolean;
-  new_balance: number;
-  error_message: string | null;
-}
+/** Result from deduct_credits database function */
+export type DeductCreditsResult =
+  Database['public']['Functions']['deduct_credits']['Returns'][number];
 
-export interface AddCreditsResult {
-  success: boolean;
-  new_balance: number;
-}
+/** Result from add_credits database function */
+export type AddCreditsResult =
+  Database['public']['Functions']['add_credits']['Returns'][number];
 
 /** Credit costs for different AI operations */
 export const CREDIT_COSTS = {

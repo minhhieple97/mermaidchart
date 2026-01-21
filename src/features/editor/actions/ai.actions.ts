@@ -4,24 +4,86 @@
  * AI Server Actions
  * Server actions for AI-powered Mermaid syntax fixing
  *
- * Requirements:
- * - 5.2: Analyze code and generate corrected version
- * - Credit deduction: 1 credit per AI fix request
- *
- * Uses scalable AI provider abstraction - defaults to Gemini 2.0 Flash
- * Can be switched to OpenAI or Anthropic via AI_PROVIDER env variable
+ * Security measures:
+ * - Input validation with strict length limits
+ * - Input sanitization to prevent prompt injection
+ * - Credit-based rate limiting
+ * - Hardened system prompt
+ * - Safe error handling (no internal details leaked)
  */
 
 import { authActionClient } from '@/lib/safe-action';
 import { z } from 'zod';
 import { generateText } from 'ai';
 import { getAIModel, isAIConfigured, getAIProvider } from '@/lib/ai';
-import { AI_FIX_SYSTEM_PROMPT } from '../constants';
+import { AI_FIX_SYSTEM_PROMPT, EDITOR_CONSTANTS } from '../constants';
 import { CREDIT_COSTS } from '@/features/credits';
 
+/**
+ * Sanitize user input to prevent prompt injection attacks
+ * Removes or escapes potentially dangerous patterns
+ */
+function sanitizeInput(input: string): string {
+  return (
+    input
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Escape markdown code fence attempts that could break out of context
+      .replace(/```/g, '` ` `')
+      // Remove control characters except newlines and tabs
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      // Limit consecutive newlines to prevent layout attacks
+      .replace(/\n{4,}/g, '\n\n\n')
+      // Trim excessive whitespace
+      .trim()
+  );
+}
+
+/**
+ * Validate that input looks like Mermaid code (basic check)
+ * This is a first-line defense, not comprehensive validation
+ */
+function looksLikeMermaidCode(code: string): boolean {
+  const mermaidPatterns = [
+    /^(graph|flowchart)\s+(TB|BT|LR|RL|TD)/im,
+    /^sequenceDiagram/im,
+    /^classDiagram/im,
+    /^stateDiagram/im,
+    /^erDiagram/im,
+    /^gantt/im,
+    /^pie/im,
+    /^mindmap/im,
+    /^timeline/im,
+    /^gitGraph/im,
+    /^journey/im,
+    /^quadrantChart/im,
+    /^requirementDiagram/im,
+    /^C4Context/im,
+  ];
+
+  const trimmedCode = code.trim();
+  return mermaidPatterns.some((pattern) => pattern.test(trimmedCode));
+}
+
 const fixSyntaxSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
-  errorMessage: z.string().min(1, 'Error message is required'),
+  code: z
+    .string()
+    .min(1, 'Code is required')
+    .max(
+      EDITOR_CONSTANTS.MAX_CODE_LENGTH,
+      `Code must be less than ${EDITOR_CONSTANTS.MAX_CODE_LENGTH} characters`,
+    )
+    .refine(
+      (code) => looksLikeMermaidCode(code),
+      'Input does not appear to be valid Mermaid diagram code',
+    ),
+  errorMessage: z
+    .string()
+    .min(1, 'Error message is required')
+    .max(
+      EDITOR_CONSTANTS.MAX_ERROR_MESSAGE_LENGTH,
+      `Error message must be less than ${EDITOR_CONSTANTS.MAX_ERROR_MESSAGE_LENGTH} characters`,
+    ),
   diagramId: z.string().uuid().optional(),
 });
 
@@ -29,11 +91,6 @@ const fixSyntaxSchema = z.object({
  * Fix Mermaid syntax using AI
  * Analyzes the code and error message to generate a corrected version
  * Deducts 1 credit per request
- *
- * Provider is determined by AI_PROVIDER env variable:
- * - "google" (default): Gemini 2.0 Flash
- * - "openai": GPT-4o-mini
- * - "anthropic": Claude 3 Haiku
  */
 export const fixMermaidSyntaxAction = authActionClient
   .schema(fixSyntaxSchema)
@@ -47,9 +104,13 @@ export const fixMermaidSyntaxAction = authActionClient
         const provider = getAIProvider();
         return {
           success: false,
-          error: `AI provider "${provider}" is not configured. Please set the appropriate API key in your environment variables.`,
+          error: `AI provider "${provider}" is not configured. Please contact support.`,
         };
       }
+
+      // Sanitize inputs before processing
+      const sanitizedCode = sanitizeInput(code);
+      const sanitizedError = sanitizeInput(errorMessage);
 
       // Deduct credits before AI call
       const { data: deductResult, error: deductError } = await supabase.rpc(
@@ -59,7 +120,7 @@ export const fixMermaidSyntaxAction = authActionClient
           p_amount: CREDIT_COSTS.AI_FIX,
           p_transaction_type: 'ai_fix',
           p_reference_id: diagramId ?? null,
-          p_metadata: { error_message: errorMessage.slice(0, 200) },
+          p_metadata: { error_hash: hashString(sanitizedError.slice(0, 100)) },
         },
       );
 
@@ -76,7 +137,9 @@ export const fixMermaidSyntaxAction = authActionClient
             p_amount: CREDIT_COSTS.AI_FIX,
             p_transaction_type: 'ai_fix',
             p_reference_id: diagramId ?? null,
-            p_metadata: { error_message: errorMessage.slice(0, 200) },
+            p_metadata: {
+              error_hash: hashString(sanitizedError.slice(0, 100)),
+            },
           });
           if (!retryResult?.[0]?.success) {
             return {
@@ -86,7 +149,7 @@ export const fixMermaidSyntaxAction = authActionClient
             };
           }
         } else {
-          return { success: false, error: 'Failed to process credits' };
+          return { success: false, error: 'Unable to process request' };
         }
       } else if (!deductResult?.[0]?.success) {
         return {
@@ -101,43 +164,85 @@ export const fixMermaidSyntaxAction = authActionClient
       try {
         const model = await getAIModel('fast');
 
+        // Construct prompt with clear boundaries
+        const userPrompt = `<mermaid_code>
+${sanitizedCode}
+</mermaid_code>
+
+<error_message>
+${sanitizedError}
+</error_message>
+
+Fix the syntax error in the Mermaid code above.`;
+
         const { text } = await generateText({
           model,
           system: AI_FIX_SYSTEM_PROMPT,
-          prompt: `Fix this Mermaid diagram code:
-
-\`\`\`mermaid
-${code}
-\`\`\`
-
-Error message: ${errorMessage}
-
-Respond with:
-1. The corrected code in a mermaid code block
-2. A brief explanation of what was fixed`,
+          prompt: userPrompt,
         });
 
         // Parse response to extract code and explanation
         const codeMatch = text.match(/```mermaid\n([\s\S]*?)\n```/);
-        const fixedCode = codeMatch ? codeMatch[1].trim() : code;
-        const explanation = text.replace(/```mermaid[\s\S]*?```/, '').trim();
+
+        // Validate that we got valid output
+        if (!codeMatch) {
+          // Check if AI refused (security measure worked)
+          if (text.includes('ERROR:') || text.includes('Invalid input')) {
+            return {
+              success: false,
+              error:
+                'Unable to process the provided code. Please ensure it is valid Mermaid syntax.',
+              creditsRemaining,
+            };
+          }
+          // Fallback - return original code
+          return {
+            success: false,
+            error:
+              'Unable to generate a fix. Please check your diagram syntax manually.',
+            creditsRemaining,
+          };
+        }
+
+        const fixedCode = codeMatch[1].trim();
+        const explanation = text
+          .replace(/```mermaid[\s\S]*?```/, '')
+          .trim()
+          .slice(0, 500); // Limit explanation length
 
         return {
           success: true,
           fixedCode,
-          explanation: explanation || 'Code has been fixed.',
+          explanation: explanation || 'Syntax has been corrected.',
           creditsRemaining,
         };
       } catch (error) {
-        // Note: Credits already deducted - no refund on AI failure
-        // This prevents abuse of free retries
-        const errorMsg =
-          error instanceof Error ? error.message : 'Failed to fix syntax';
+        // Log error server-side for debugging (not exposed to client)
+        console.error(
+          '[AI Fix Error]',
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+
         return {
           success: false,
-          error: errorMsg,
+          error:
+            'An error occurred while processing your request. Please try again.',
           creditsRemaining,
         };
       }
     },
   );
+
+/**
+ * Simple hash function for logging (not cryptographic)
+ * Used to track error patterns without storing raw user content
+ */
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(16);
+}
