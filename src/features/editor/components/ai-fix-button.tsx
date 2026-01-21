@@ -32,8 +32,7 @@ export function AIFixButton({ visible, onClick, isLoading }: AIFixButtonProps) {
       onClick={onClick}
       disabled={isLoading}
       size="sm"
-      className="gap-2"
-      variant="secondary"
+      className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm transition-all duration-200"
     >
       {isLoading ? (
         <>

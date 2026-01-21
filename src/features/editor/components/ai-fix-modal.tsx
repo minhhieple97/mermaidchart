@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -60,12 +59,12 @@ const diffStyles = {
     fontFamily:
       'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
     fontSize: '13px',
-    lineHeight: '1.6',
+    lineHeight: '1.7',
   },
   titleBlock: {
     fontWeight: 600,
     fontSize: '13px',
-    padding: '10px 16px',
+    padding: '10px 14px',
     borderBottom: '1px solid #e5e7eb',
     background: '#f9fafb',
   },
@@ -99,57 +98,73 @@ export const AIFixModal = memo(function AIFixModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-blue-500" />
-            AI Suggested Fix
-          </DialogTitle>
-          <DialogDescription>
-            Review the changes below. Green highlights show additions, red shows
-            removals.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+        {/* Header */}
+        <div className="p-5 pb-4">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              AI Suggested Fix
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Review the proposed changes. Accept to apply or cancel to keep
+              your original code.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="flex-1 overflow-auto space-y-4 py-4">
+        {/* Content */}
+        <div className="flex-1 overflow-auto px-5 pb-5 space-y-4">
           {/* Explanation */}
           {explanation && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <h4 className="font-semibold text-sm text-blue-900 mb-1">
-                What was fixed:
-              </h4>
-              <p className="text-sm text-blue-800">{explanation}</p>
+            <div className="rounded-lg bg-violet-50 border border-violet-100 p-3">
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-4 w-4 text-violet-500 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-violet-900 mb-0.5">
+                    What was fixed
+                  </p>
+                  <p className="text-sm text-violet-700 leading-relaxed">
+                    {explanation}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Diff View */}
-          <div className="border rounded-lg overflow-hidden shadow-sm">
+          <div className="border rounded-lg overflow-hidden">
             <ReactDiffViewer
               oldValue={originalCode}
               newValue={fixedCode}
               splitView={true}
               useDarkTheme={false}
-              leftTitle="❌ Original (with error)"
-              rightTitle="✅ Fixed (AI suggestion)"
+              leftTitle="Original (with error)"
+              rightTitle="Fixed (AI suggestion)"
               compareMethod={DiffMethod.LINES}
               styles={diffStyles}
             />
           </div>
         </div>
 
-        <DialogFooter className="gap-2 border-t pt-4">
-          <Button variant="outline" onClick={handleReject} className="gap-2">
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 p-4 pt-3 border-t bg-muted/30">
+          <Button
+            variant="ghost"
+            onClick={handleReject}
+            className="gap-1.5 h-9 px-4"
+          >
             <X className="h-4 w-4" />
             Cancel
           </Button>
           <Button
             onClick={handleAccept}
-            className="gap-2 bg-green-600 hover:bg-green-700"
+            className="gap-1.5 h-9 px-4 bg-green-600 hover:bg-green-700 text-white"
           >
             <Check className="h-4 w-4" />
             Apply Fix
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
