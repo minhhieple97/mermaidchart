@@ -15,11 +15,11 @@ export default function SignupPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Header */}
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight">
             Create an account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email to create your account
+            Get started with your free account
           </p>
         </div>
 

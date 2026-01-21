@@ -33,14 +33,13 @@ export function DiagramCard({
   onDelete,
   onRename,
 }: DiagramCardProps) {
-  const formattedDate = new Date(diagram.updated_at).toLocaleDateString(
-    'en-US',
-    {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    },
-  );
+  const formattedDate = new Date(
+    diagram.updated_at ?? diagram.created_at ?? new Date(),
+  ).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   return (
     <Card

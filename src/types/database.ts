@@ -1,46 +1,52 @@
 // types/database.ts
-// TypeScript interfaces and Zod validation schemas for database entities
+// Re-exports Supabase generated types and provides Zod validation schemas
 // Requirements: 2.3, 3.3
 
 import { z } from 'zod';
+import type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from '@/types/database.types';
 
 // ============================================================================
-// TypeScript Interfaces
+// TypeScript Types (from Supabase generated types)
 // ============================================================================
-
-/**
- * User entity representing an authenticated user
- */
-export interface User {
-  id: string;
-  email: string;
-  created_at: string;
-}
 
 /**
  * Project entity representing a container for diagrams
+ * Generated from Supabase schema
  */
-export interface Project {
-  id: string;
-  user_id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
+export type Project = Tables<'projects'> & {
   diagram_count?: number; // computed field from joined query
-}
+  diagrams?: Array<{ count: number }>; // for aggregate queries
+};
 
 /**
  * Diagram entity representing a single Mermaid chart
+ * Generated from Supabase schema
  */
-export interface Diagram {
-  id: string;
-  project_id: string;
-  name: string;
-  code: string;
-  is_public: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type Diagram = Tables<'diagrams'>;
+
+/**
+ * Project insert type for creating new projects
+ */
+export type ProjectInsert = TablesInsert<'projects'>;
+
+/**
+ * Project update type for updating existing projects
+ */
+export type ProjectUpdate = TablesUpdate<'projects'>;
+
+/**
+ * Diagram insert type for creating new diagrams
+ */
+export type DiagramInsert = TablesInsert<'diagrams'>;
+
+/**
+ * Diagram update type for updating existing diagrams
+ */
+export type DiagramUpdate = TablesUpdate<'diagrams'>;
 
 // ============================================================================
 // Zod Validation Schemas

@@ -1,67 +1,59 @@
 'use client';
 
-/**
- * Code Editor Component
- * Monaco-based code editor for Mermaid diagrams
- *
- * Requirements:
- * - 4.7: Provide syntax highlighting for Mermaid code
- * - 4.8: Display line numbers for code navigation
- */
-
-import { useCallback } from 'react';
-import Editor from '@monaco-editor/react';
+import { useCallback, useRef } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
 
 interface CodeEditorProps {
-  /** Current code value */
   value: string;
-  /** Callback when code changes */
   onChange: (value: string) => void;
-  /** Whether the editor is disabled */
   disabled?: boolean;
 }
 
-/**
- * Monaco-based code editor with Mermaid syntax highlighting
- */
 export function CodeEditor({
   value,
   onChange,
   disabled = false,
 }: CodeEditorProps) {
+  const editorRef = useRef<unknown>(null);
+
   const handleChange = useCallback(
-    (newValue: string | undefined) => {
-      onChange(newValue ?? '');
-    },
+    (newValue: string | undefined) => onChange(newValue ?? ''),
     [onChange],
   );
 
+  const handleMount: OnMount = useCallback((editor) => {
+    editorRef.current = editor;
+    editor.focus();
+  }, []);
+
   return (
-    <div className="h-full w-full">
-      <Editor
-        height="100%"
-        defaultLanguage="markdown"
-        value={value}
-        onChange={handleChange}
-        options={{
-          minimap: { enabled: false },
-          lineNumbers: 'on',
-          fontSize: 14,
-          fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
-          wordWrap: 'on',
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          tabSize: 2,
-          readOnly: disabled,
-          padding: { top: 16, bottom: 16 },
-        }}
-        theme="vs-dark"
-        loading={
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Loading editor...
-          </div>
-        }
-      />
-    </div>
+    <Editor
+      height="100%"
+      defaultLanguage="markdown"
+      value={value}
+      onChange={handleChange}
+      onMount={handleMount}
+      theme="light"
+      options={{
+        minimap: { enabled: false },
+        fontSize: 14,
+        lineHeight: 22,
+        fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
+        wordWrap: 'on',
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        tabSize: 2,
+        readOnly: disabled,
+        padding: { top: 16, bottom: 16 },
+        renderLineHighlight: 'all',
+        cursorBlinking: 'smooth',
+        smoothScrolling: true,
+      }}
+      loading={
+        <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+          Loading editor...
+        </div>
+      }
+    />
   );
 }

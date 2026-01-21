@@ -1,95 +1,85 @@
 'use client';
 
-/**
- * Diagram Editor Page
- * Full-featured split-pane editor for Mermaid diagrams
- *
- * Requirements:
- * - 3.4: Open Split_Pane_Editor with diagram loaded
- * - 4.1: Display Editor on left and Preview_Pane on right
- * - 4.6: Auto-save changes after 2 seconds of inactivity
- * - 6.2: Load most recently saved version when reopening
- * - 7.3: Display breadcrumb navigation showing current location
- * - 3.2: Toggle visibility setting (public/private)
- * - 4.1: Display "Copy Link" button when diagram is public
- */
-
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Loader2, Save, Check } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Loader2,
+  Save,
+  Check,
+  Home,
+  ChevronRight,
+  Lock,
+  Globe,
+  Link2,
+  User,
+  LogOut,
+  GitBranch,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BreadcrumbNav } from '@/features/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useDiagram, useUpdateDiagram } from '@/hooks/use-diagrams';
 import { useProjects } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
 import { SplitPaneEditor, useAutoSave } from '@/features/editor';
-import {
-  VisibilityToggle,
-  CopyLinkButton,
-  useVisibility,
-} from '@/features/sharing';
+import { useVisibility } from '@/features/sharing';
+import { signOutAction } from '@/actions/auth';
+import { useAction } from 'next-safe-action/hooks';
+import { useRouter } from 'next/navigation';
 
 export default function DiagramEditorPage() {
   const params = useParams();
   const { toast } = useToast();
-
   const diagramId = params.diagramId as string;
   const projectId = params.projectId as string;
 
   const { data: diagram, isLoading, error } = useDiagram(diagramId);
   const { data: projects } = useProjects();
   const { updateDiagram } = useUpdateDiagram();
-
-  // Find current project name for breadcrumb
   const currentProject = projects?.find((p) => p.id === projectId);
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  // Error state
   if (error || !diagram) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center px-4">
-        <h2 className="text-lg font-semibold text-destructive mb-2">
-          Failed to load diagram
-        </h2>
-        <p className="text-muted-foreground max-w-sm mb-4">
-          {error instanceof Error
-            ? error.message
-            : 'The diagram could not be found'}
-        </p>
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
+        <p className="text-red-600 font-medium">Failed to load diagram</p>
         <Button variant="outline" asChild>
-          <a href={`/projects/${projectId}`}>Back to Project</a>
+          <Link href={`/projects/${projectId}`}>Back to Project</Link>
         </Button>
       </div>
     );
   }
 
-  // Render the editor once diagram is loaded
   return (
-    <DiagramEditorContent
+    <EditorContent
       diagram={diagram}
       projectId={projectId}
       diagramId={diagramId}
-      currentProject={currentProject}
+      projectName={currentProject?.name}
       updateDiagram={updateDiagram}
       toast={toast}
     />
   );
 }
 
-// Separate component to handle the editor state after diagram is loaded
-function DiagramEditorContent({
+function EditorContent({
   diagram,
   projectId,
   diagramId,
-  currentProject,
+  projectName,
   updateDiagram,
   toast,
 }: {
@@ -101,18 +91,22 @@ function DiagramEditorContent({
   };
   projectId: string;
   diagramId: string;
-  currentProject?: { name: string };
+  projectName?: string;
   updateDiagram: (data: { id: string; code: string }) => void;
-  toast: (options: {
+  toast: (opts: {
     title: string;
     description: string;
     variant?: 'destructive';
   }) => void;
 }) {
-  // Initialize code with diagram data
+  const router = useRouter();
   const [code, setCode] = useState(diagram.code);
+  const [copied, setCopied] = useState(false);
 
-  // Visibility hook
+  const { execute: signOut, status: signOutStatus } = useAction(signOutAction, {
+    onSuccess: () => router.push('/login'),
+  });
+
   const {
     isPublic,
     toggleVisibility,
@@ -124,28 +118,25 @@ function DiagramEditorContent({
       toast({
         title: newIsPublic ? 'Diagram is now public' : 'Diagram is now private',
         description: newIsPublic
-          ? 'Anyone with the link can view this diagram'
-          : 'Only you can view this diagram',
+          ? 'Anyone with the link can view'
+          : 'Only you can view',
       });
     },
-    onError: (error) => {
+    onError: (err) => {
       toast({
-        title: 'Failed to update visibility',
-        description: error,
+        title: 'Failed to update',
+        description: err,
         variant: 'destructive',
       });
     },
   });
 
-  // Auto-save handler
   const handleSave = useCallback(
-    async (codeToSave: string) => {
-      updateDiagram({ id: diagramId, code: codeToSave });
-    },
+    async (codeToSave: string) =>
+      updateDiagram({ id: diagramId, code: codeToSave }),
     [diagramId, updateDiagram],
   );
 
-  // Auto-save hook
   const {
     isSaving,
     lastSaved,
@@ -155,7 +146,6 @@ function DiagramEditorContent({
     enabled: true,
   });
 
-  // Show toast on save error
   useEffect(() => {
     if (saveError) {
       toast({
@@ -166,59 +156,151 @@ function DiagramEditorContent({
     }
   }, [saveError, toast]);
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/share/${diagramId}`,
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-white">
       {/* Header */}
-      <header className="border-b px-4 py-3 flex items-center justify-between bg-background">
-        <div className="flex flex-col gap-1">
-          {/* Breadcrumb Navigation */}
-          <BreadcrumbNav
-            items={[
-              {
-                label: currentProject?.name || 'Project',
-                href: `/projects/${projectId}`,
-              },
-              { label: diagram.name },
-            ]}
-          />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {isSaving ? (
-              <>
-                <Save className="h-3 w-3 animate-pulse" />
-                <span>Saving...</span>
-              </>
-            ) : lastSaved ? (
-              <>
-                <Check className="h-3 w-3 text-green-500" />
-                <span>Saved {lastSaved.toLocaleTimeString()}</span>
-              </>
-            ) : (
-              <span>
-                Last saved: {new Date(diagram.updated_at).toLocaleString()}
-              </span>
-            )}
-          </div>
+      <header className="h-14 border-b bg-white flex items-center justify-between px-4 flex-shrink-0">
+        {/* Left: Logo + Breadcrumb */}
+        <div className="flex items-center gap-4">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+          >
+            <GitBranch className="h-5 w-5 text-blue-600" />
+            <span className="hidden sm:inline">Mermaid Preview</span>
+          </Link>
+
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-200" />
+
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm">
+            <Link
+              href={`/projects/${projectId}`}
+              className="text-gray-500 hover:text-gray-900 transition-colors max-w-[150px] truncate"
+            >
+              {projectName || 'Project'}
+            </Link>
+            <ChevronRight className="h-4 w-4 text-gray-300" />
+            <span className="font-medium text-gray-900 max-w-[200px] truncate">
+              {diagram.name}
+            </span>
+          </nav>
         </div>
 
-        {/* Visibility Controls */}
-        <div className="flex items-center gap-2">
-          <VisibilityToggle
-            isPublic={isPublic}
-            onToggle={toggleVisibility}
+        {/* Center: Save status */}
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          {isSaving ? (
+            <>
+              <Save className="h-3.5 w-3.5 animate-pulse" />
+              <span>Saving...</span>
+            </>
+          ) : lastSaved ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-green-500" />
+              <span>Saved {lastSaved.toLocaleTimeString()}</span>
+            </>
+          ) : (
+            <span>
+              Last saved {new Date(diagram.updated_at).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+
+        {/* Right: Actions + User Menu */}
+        <div className="flex items-center gap-3">
+          {/* Visibility Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleVisibility}
             disabled={isVisibilitySaving}
-          />
-          <CopyLinkButton diagramId={diagramId} isPublic={isPublic} />
+            className="gap-1.5 h-8"
+          >
+            {isVisibilitySaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isPublic ? (
+              <Globe className="h-4 w-4 text-green-500" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {isPublic ? 'Public' : 'Private'}
+            </span>
+          </Button>
+
+          {/* Copy Link */}
+          {isPublic && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyLink}
+              className="gap-1.5 h-8"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {copied ? 'Copied!' : 'Copy Link'}
+              </span>
+            </Button>
+          )}
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-full"
+              >
+                <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center">
+                  <User className="h-4 w-4 text-gray-600" />
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem disabled className="text-gray-500">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => signOut()}
+                disabled={signOutStatus === 'executing'}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {signOutStatus === 'executing' ? 'Logging out...' : 'Logout'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
+      {/* Editor - fills all remaining height */}
+      <main className="flex-1 overflow-hidden">
         <SplitPaneEditor
           code={code}
           onCodeChange={setCode}
           diagramName={diagram.name}
         />
-      </div>
+      </main>
     </div>
   );
 }

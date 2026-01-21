@@ -1,18 +1,8 @@
 'use client';
 
-/**
- * Dashboard Page
- * Displays the user's projects with loading and error states
- *
- * Requirements:
- * - 7.1: Display dashboard with list of projects when user logs in
- * - 7.2: Display empty state with prompt to create project when no projects
- * - 7.5: Project cards show name, diagram count, and last modified date
- */
-
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, FolderKanban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectList } from '@/components/project-list';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
@@ -30,7 +20,6 @@ export default function DashboardPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
-  // Handle delete success callback
   const handleDeleteSuccess = useCallback(() => {
     toast({
       title: 'Project deleted',
@@ -40,7 +29,6 @@ export default function DashboardPage() {
     setProjectToDelete(null);
   }, [toast]);
 
-  // Handle delete error callback
   const handleDeleteError = useCallback(
     (errorMessage: string) => {
       toast({
@@ -57,18 +45,10 @@ export default function DashboardPage() {
     onError: handleDeleteError,
   });
 
-  /**
-   * Navigate to project view when a project is clicked
-   * Requirements: 2.4 - Navigate to project view showing all diagrams
-   */
   const handleProjectClick = (project: Project) => {
     router.push(`/projects/${project.id}`);
   };
 
-  /**
-   * Handle project deletion with confirmation
-   * Requirements: 2.5, 2.6 - Prompt for confirmation and delete project
-   */
   const handleProjectDelete = (projectId: string) => {
     setProjectToDelete(projectId);
     setDeleteDialogOpen(true);
@@ -79,23 +59,21 @@ export default function DashboardPage() {
     deleteProject({ id: projectToDelete });
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center px-4">
-        <h2 className="text-lg font-semibold text-destructive mb-2">
+        <h2 className="text-lg font-semibold text-red-600 mb-2">
           Failed to load projects
         </h2>
-        <p className="text-muted-foreground max-w-sm">
+        <p className="text-gray-500 max-w-sm">
           {error instanceof Error
             ? error.message
             : 'An unexpected error occurred'}
@@ -106,20 +84,28 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your Mermaid diagram projects
-            </p>
+      <div className="max-w-screen-xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              <FolderKanban className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+              <p className="text-gray-500 mt-0.5">
+                {projects?.length || 0} project
+                {projects?.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
             New Project
           </Button>
         </div>
 
+        {/* Project List */}
         <ProjectList
           projects={projects ?? []}
           onProjectClick={handleProjectClick}

@@ -28,8 +28,8 @@ export interface ProjectCardProps {
 /**
  * Formats a date string to a human-readable format
  */
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+function formatDate(dateString: string | null): string {
+  const date = new Date(dateString ?? new Date());
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',

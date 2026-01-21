@@ -16,7 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Form validation schema for authentication.
@@ -44,8 +45,14 @@ interface AuthFormProps {
  */
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
-  const action = mode === 'login' ? signInAction : signUpAction;
-  const { execute, status, result } = useAction(action);
+  const { toast } = useToast();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const signInExec = useAction(signInAction);
+  const signUpExec = useAction(signUpAction);
+
+  const currentAction = mode === 'login' ? signInExec : signUpExec;
+  const { execute, status, result } = currentAction;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -55,18 +62,57 @@ export function AuthForm({ mode }: AuthFormProps) {
     },
   });
 
-  const isLoading = status === 'executing';
+  const isLoading = status === 'executing' || isRedirecting;
 
   // Handle successful authentication - redirect to dashboard
   useEffect(() => {
     if (result?.data?.success) {
-      router.push('/');
-      router.refresh();
-    }
-  }, [result, router]);
+      setIsRedirecting(true);
 
-  const onSubmit = (values: FormValues) => {
-    execute(values);
+      if (mode === 'signup') {
+        toast({
+          title: 'Account created successfully!',
+          description: 'Welcome! Redirecting to your dashboard...',
+        });
+      } else {
+        toast({
+          title: 'Welcome back!',
+          description: 'Redirecting to your dashboard...',
+        });
+      }
+
+      // Small delay for better UX
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 500);
+    }
+  }, [result, router, mode, toast]);
+
+  // Handle errors with toast notifications
+  useEffect(() => {
+    if (result?.data?.error) {
+      toast({
+        title: mode === 'login' ? 'Login failed' : 'Signup failed',
+        description: result.data.error,
+        variant: 'destructive',
+      });
+    }
+  }, [result, mode, toast]);
+
+  const onSubmit = async (values: FormValues) => {
+    if (mode === 'signup') {
+      // For signup, execute signup then auto-login
+      const signupResult = await signUpExec.executeAsync(values);
+
+      if (signupResult?.data?.success) {
+        // Auto-login after successful signup
+        await signInExec.executeAsync(values);
+      }
+    } else {
+      // For login, just execute login
+      execute(values);
+    }
   };
 
   return (
@@ -114,20 +160,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         />
 
-        {/* Display server-side error messages */}
-        {result?.data?.error && (
-          <div className="text-sm font-medium text-destructive">
-            {result.data.error}
-          </div>
-        )}
-
-        {/* Display success message for signup */}
-        {mode === 'signup' && result?.data?.success && (
-          <div className="text-sm font-medium text-green-600">
-            Account created! Please check your email to verify your account.
-          </div>
-        )}
-
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <span className="flex items-center gap-2">
@@ -151,7 +183,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+              {isRedirecting
+                ? 'Redirecting...'
+                : mode === 'login'
+                  ? 'Signing in...'
+                  : 'Creating account...'}
             </span>
           ) : mode === 'login' ? (
             'Sign In'

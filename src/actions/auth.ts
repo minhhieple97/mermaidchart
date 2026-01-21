@@ -9,7 +9,7 @@ import { z } from 'zod';
  * Validates email format and minimum password length.
  */
 const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -51,6 +51,9 @@ export const signUpAction = actionClient
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: undefined,
+      },
     });
 
     if (error) {

@@ -53,7 +53,12 @@ export function useProjects() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Transform the data to match our Project type
+      return data.map((project) => ({
+        ...project,
+        diagrams: project.diagrams as unknown as Array<{ count: number }>,
+      }));
     },
   });
 }

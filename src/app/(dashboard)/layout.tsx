@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Dashboard Layout
- * Provides consistent header with logo, user menu, and logout functionality
- *
- * Requirements:
- * - 1.6: Logout functionality to terminate session
- * - 7.1: Display dashboard with navigation
- */
-
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAction } from 'next-safe-action/hooks';
@@ -39,26 +30,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isLoggingOut = status === 'executing';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between">
+      <header className="sticky top-0 z-50 h-14 w-full border-b bg-white shadow-sm">
+        <div className="h-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <GitBranch className="h-5 w-5 text-primary" />
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+          >
+            <GitBranch className="h-5 w-5 text-blue-600" />
             <span>Mermaid Preview</span>
           </Link>
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <User className="h-5 w-5" />
-                <span className="sr-only">User menu</span>
+              <Button variant="ghost" size="sm" className="gap-2 h-9 px-3">
+                <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center">
+                  <User className="h-4 w-4 text-gray-600" />
+                </div>
+                <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                  Account
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem disabled>
+              <DropdownMenuItem disabled className="text-gray-500">
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
@@ -66,7 +64,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <DropdownMenuItem
                 onClick={() => signOut()}
                 disabled={isLoggingOut}
-                className="text-destructive focus:text-destructive"
+                className="text-red-600 focus:text-red-600 focus:bg-red-50"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {isLoggingOut ? 'Logging out...' : 'Logout'}

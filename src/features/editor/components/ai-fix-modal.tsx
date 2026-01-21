@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * AI Fix Modal Component
- * Modal showing the AI-suggested fix with diff view highlighting changes
- *
- * Requirements:
- * - 5.3: Display diff view comparing original and fixed code with additions in green and deletions in red
- * - 5.4: Accept AI fix to replace editor content
- * - 5.5: Reject AI fix to retain original code
- */
-
 import {
   Dialog,
   DialogContent,
@@ -19,30 +9,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, Sparkles } from 'lucide-react';
 import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer-continued';
 
 interface AIFixModalProps {
-  /** Whether the modal is open */
   isOpen: boolean;
-  /** Callback to close the modal */
   onClose: () => void;
-  /** Original code before fix */
   originalCode: string;
-  /** AI-suggested fixed code */
   fixedCode: string;
-  /** Explanation of what was fixed */
   explanation: string;
-  /** Callback when user accepts the fix */
   onAccept: () => void;
-  /** Callback when user rejects the fix */
   onReject: () => void;
 }
 
-/**
- * Modal for reviewing and accepting/rejecting AI-suggested fixes
- * Uses react-diff-viewer-continued for side-by-side diff with highlighting
- */
 export function AIFixModal({
   isOpen,
   onClose,
@@ -64,76 +43,92 @@ export function AIFixModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>AI Suggested Fix</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+            AI Suggested Fix
+          </DialogTitle>
           <DialogDescription>
-            Review the suggested changes below. Accept to apply the fix or
-            reject to keep your original code.
+            Review the changes below. Green highlights show additions, red shows
+            removals.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto space-y-4 py-4">
           {/* Explanation */}
           {explanation && (
-            <div className="rounded-lg bg-muted p-3">
-              <h4 className="font-medium text-sm mb-1">What was fixed:</h4>
-              <p className="text-sm text-muted-foreground">{explanation}</p>
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <h4 className="font-semibold text-sm text-blue-900 mb-1">
+                What was fixed:
+              </h4>
+              <p className="text-sm text-blue-800">{explanation}</p>
             </div>
           )}
 
           {/* Diff View */}
-          <div className="border rounded-md overflow-auto">
+          <div className="border rounded-lg overflow-hidden shadow-sm">
             <ReactDiffViewer
               oldValue={originalCode}
               newValue={fixedCode}
               splitView={true}
               useDarkTheme={false}
-              leftTitle="Original Code"
-              rightTitle="Fixed Code"
+              leftTitle="❌ Original (with error)"
+              rightTitle="✅ Fixed (AI suggestion)"
               compareMethod={DiffMethod.LINES}
               styles={{
                 variables: {
                   light: {
                     diffViewerBackground: '#ffffff',
-                    addedBackground: '#e6ffec',
-                    addedColor: '#24292f',
-                    removedBackground: '#ffebe9',
-                    removedColor: '#24292f',
-                    wordAddedBackground: '#abf2bc',
-                    wordRemovedBackground: '#ff818266',
-                    addedGutterBackground: '#ccffd8',
-                    removedGutterBackground: '#ffd7d5',
-                    gutterBackground: '#f6f8fa',
-                    gutterBackgroundDark: '#f0f1f2',
-                    highlightBackground: '#fffbdd',
-                    highlightGutterBackground: '#fff5b1',
+                    addedBackground: '#dcfce7',
+                    addedColor: '#166534',
+                    removedBackground: '#fee2e2',
+                    removedColor: '#991b1b',
+                    wordAddedBackground: '#86efac',
+                    wordRemovedBackground: '#fca5a5',
+                    addedGutterBackground: '#bbf7d0',
+                    removedGutterBackground: '#fecaca',
+                    gutterBackground: '#f9fafb',
+                    gutterBackgroundDark: '#f3f4f6',
+                    highlightBackground: '#fef9c3',
+                    highlightGutterBackground: '#fef08a',
                   },
                 },
                 contentText: {
                   fontFamily:
-                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                   fontSize: '13px',
+                  lineHeight: '1.6',
                 },
                 titleBlock: {
                   fontWeight: 600,
-                  fontSize: '14px',
-                  padding: '8px 12px',
-                  borderBottom: '1px solid #e1e4e8',
-                  background: '#f6f8fa',
+                  fontSize: '13px',
+                  padding: '10px 16px',
+                  borderBottom: '1px solid #e5e7eb',
+                  background: '#f9fafb',
+                },
+                line: {
+                  padding: '2px 10px',
+                },
+                gutter: {
+                  padding: '0 10px',
+                  minWidth: '40px',
                 },
               }}
             />
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleReject}>
-            <X className="mr-2 h-4 w-4" />
-            Reject
+        <DialogFooter className="gap-2 border-t pt-4">
+          <Button variant="outline" onClick={handleReject} className="gap-2">
+            <X className="h-4 w-4" />
+            Cancel
           </Button>
-          <Button onClick={handleAccept}>
-            <Check className="mr-2 h-4 w-4" />
+          <Button
+            onClick={handleAccept}
+            className="gap-2 bg-green-600 hover:bg-green-700"
+          >
+            <Check className="h-4 w-4" />
             Apply Fix
           </Button>
         </DialogFooter>

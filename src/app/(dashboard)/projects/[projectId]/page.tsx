@@ -1,24 +1,13 @@
 'use client';
 
-/**
- * Project View Page
- * Displays all diagrams within a project
- *
- * Requirements:
- * - 2.4: Navigate to project view showing all diagrams
- * - 3.4: Display diagrams within a project
- * - 3.8: Display diagrams sorted by last modified date in descending order
- * - 7.3: Display breadcrumb navigation showing current location
- */
-
 import { useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Loader2, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, Plus, Home, ChevronRight, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DiagramList } from '@/components/diagram-list';
 import { CreateDiagramDialog } from '@/components/create-diagram-dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { BreadcrumbNav } from '@/features/navigation';
 import { useDiagrams, useDeleteDiagram } from '@/hooks/use-diagrams';
 import { useProjects } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
@@ -37,10 +26,8 @@ export default function ProjectPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [diagramToDelete, setDiagramToDelete] = useState<string | null>(null);
 
-  // Find current project name for breadcrumb
   const currentProject = projects?.find((p) => p.id === projectId);
 
-  // Handle delete success callback
   const handleDeleteSuccess = useCallback(() => {
     toast({
       title: 'Diagram deleted',
@@ -50,7 +37,6 @@ export default function ProjectPage() {
     setDiagramToDelete(null);
   }, [toast]);
 
-  // Handle delete error callback
   const handleDeleteError = useCallback(
     (errorMessage: string) => {
       toast({
@@ -67,18 +53,10 @@ export default function ProjectPage() {
     onError: handleDeleteError,
   });
 
-  /**
-   * Navigate to diagram editor when a diagram is clicked
-   * Requirements: 3.4 - Open Split_Pane_Editor with diagram loaded
-   */
   const handleDiagramClick = (diagram: Diagram) => {
     router.push(`/projects/${projectId}/diagrams/${diagram.id}`);
   };
 
-  /**
-   * Handle diagram deletion with confirmation
-   * Requirements: 3.5, 3.6 - Prompt for confirmation and delete diagram
-   */
   const handleDiagramDelete = (diagramId: string) => {
     setDiagramToDelete(diagramId);
     setDeleteDialogOpen(true);
@@ -89,31 +67,25 @@ export default function ProjectPage() {
     deleteDiagram({ id: diagramToDelete });
   };
 
-  /**
-   * Handle successful diagram creation
-   * Navigate to the new diagram editor
-   */
   const handleDiagramCreated = (diagramId: string) => {
     router.push(`/projects/${projectId}/diagrams/${diagramId}`);
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center px-4">
-        <h2 className="text-lg font-semibold text-destructive mb-2">
+        <h2 className="text-lg font-semibold text-red-600 mb-2">
           Failed to load diagrams
         </h2>
-        <p className="text-muted-foreground max-w-sm">
+        <p className="text-gray-500 max-w-sm">
           {error instanceof Error
             ? error.message
             : 'An unexpected error occurred'}
@@ -131,30 +103,44 @@ export default function ProjectPage() {
 
   return (
     <>
-      <div className="container mx-auto py-8 px-4">
-        {/* Breadcrumb Navigation */}
-        <BreadcrumbNav
-          items={[{ label: currentProject?.name || 'Project' }]}
-          className="mb-6"
-        />
+      <div className="max-w-screen-xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm mb-6">
+          <Link
+            href="/"
+            className="text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <Home className="h-4 w-4" />
+          </Link>
+          <ChevronRight className="h-4 w-4 text-gray-300" />
+          <span className="font-medium text-gray-900">
+            {currentProject?.name || 'Project'}
+          </span>
+        </nav>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              <FolderOpen className="h-6 w-6 text-blue-600" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-2xl font-bold text-gray-900">
                 {currentProject?.name || 'Diagrams'}
               </h1>
-              <p className="text-muted-foreground mt-2">
-                Manage your Mermaid diagrams
+              <p className="text-gray-500 mt-0.5">
+                {diagrams?.length || 0} diagram
+                {diagrams?.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Diagram
-            </Button>
           </div>
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Diagram
+          </Button>
         </div>
 
+        {/* Diagram List */}
         <DiagramList
           diagrams={diagrams ?? []}
           onDiagramClick={handleDiagramClick}
