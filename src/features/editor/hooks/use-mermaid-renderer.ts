@@ -8,30 +8,38 @@
  * - 4.2: Update preview within 500ms of last keystroke
  * - 4.3: Display rendered diagram for valid syntax
  * - 4.4: Display error indicator for invalid syntax without crashing
+ *
+ * Optimizations (vercel-react-best-practices):
+ * - rerender-lazy-state-init: Lazy initialization for expensive state
+ * - js-cache-function-results: Module-level caching for mermaid instance
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EDITOR_CONSTANTS } from '../constants';
 import type { MermaidRenderResult } from '../types/editor.types';
 
-// Mermaid is loaded dynamically to avoid SSR issues
+// Module-level cache for mermaid instance (js-cache-function-results)
 let mermaidInstance: typeof import('mermaid').default | null = null;
-let mermaidInitialized = false;
+let mermaidInitPromise: Promise<typeof import('mermaid').default> | null = null;
 
+// Singleton pattern with promise caching to prevent duplicate imports
 async function getMermaid() {
-  if (!mermaidInstance) {
-    const mermaid = (await import('mermaid')).default;
-    mermaidInstance = mermaid;
-  }
-  if (!mermaidInitialized) {
-    mermaidInstance.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
+  if (mermaidInstance) return mermaidInstance;
+
+  // Prevent duplicate imports during concurrent calls
+  if (!mermaidInitPromise) {
+    mermaidInitPromise = import('mermaid').then((mod) => {
+      mermaidInstance = mod.default;
+      mermaidInstance.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+      });
+      return mermaidInstance;
     });
-    mermaidInitialized = true;
   }
-  return mermaidInstance;
+
+  return mermaidInitPromise;
 }
 
 /**

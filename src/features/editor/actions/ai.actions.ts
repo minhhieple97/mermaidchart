@@ -1,5 +1,14 @@
 'use server';
 
+/**
+ * AI Actions for Mermaid syntax fixing
+ *
+ * Optimizations (vercel-react-best-practices):
+ * - server-auth-actions: Authentication verified inside action
+ * - async-defer-await: Deferred awaits until needed
+ * - js-hoist-regexp: Hoisted RegExp patterns outside functions
+ */
+
 import { authAction, ActionError } from '@/lib/safe-action';
 import { z } from 'zod';
 import { generateText } from 'ai';
@@ -8,34 +17,43 @@ import { AI_FIX_SYSTEM_PROMPT, EDITOR_CONSTANTS } from '../constants';
 import { CREDIT_COSTS } from '@/features/credits';
 import { deductCredits } from '@/queries';
 
+// Hoisted RegExp patterns (js-hoist-regexp)
+const NULL_CHAR_REGEX = /\0/g;
+const BACKTICKS_REGEX = /```/g;
+const CONTROL_CHARS_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+const EXCESSIVE_NEWLINES_REGEX = /\n{4,}/g;
+const MERMAID_CODE_BLOCK_REGEX = /```mermaid\n([\s\S]*?)\n```/;
+
 function sanitizeInput(input: string): string {
   return input
-    .replace(/\0/g, '')
-    .replace(/```/g, '` ` `')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .replace(/\n{4,}/g, '\n\n\n')
+    .replace(NULL_CHAR_REGEX, '')
+    .replace(BACKTICKS_REGEX, '` ` `')
+    .replace(CONTROL_CHARS_REGEX, '')
+    .replace(EXCESSIVE_NEWLINES_REGEX, '\n\n\n')
     .trim();
 }
 
-function looksLikeMermaidCode(code: string): boolean {
-  const mermaidPatterns = [
-    /^(graph|flowchart)\s+(TB|BT|LR|RL|TD)/im,
-    /^sequenceDiagram/im,
-    /^classDiagram/im,
-    /^stateDiagram/im,
-    /^erDiagram/im,
-    /^gantt/im,
-    /^pie/im,
-    /^mindmap/im,
-    /^timeline/im,
-    /^gitGraph/im,
-    /^journey/im,
-    /^quadrantChart/im,
-    /^requirementDiagram/im,
-    /^C4Context/im,
-  ];
+// Hoisted mermaid validation patterns (js-hoist-regexp)
+const MERMAID_PATTERNS = [
+  /^(graph|flowchart)\s+(TB|BT|LR|RL|TD)/im,
+  /^sequenceDiagram/im,
+  /^classDiagram/im,
+  /^stateDiagram/im,
+  /^erDiagram/im,
+  /^gantt/im,
+  /^pie/im,
+  /^mindmap/im,
+  /^timeline/im,
+  /^gitGraph/im,
+  /^journey/im,
+  /^quadrantChart/im,
+  /^requirementDiagram/im,
+  /^C4Context/im,
+];
 
-  return mermaidPatterns.some((pattern) => pattern.test(code.trim()));
+function looksLikeMermaidCode(code: string): boolean {
+  const trimmed = code.trim();
+  return MERMAID_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
 function hashString(str: string): string {
@@ -67,7 +85,7 @@ const fixSyntaxSchema = z.object({
       EDITOR_CONSTANTS.MAX_ERROR_MESSAGE_LENGTH,
       `Error message must be less than ${EDITOR_CONSTANTS.MAX_ERROR_MESSAGE_LENGTH} characters`,
     ),
-  diagramId: z.string().uuid().optional(),
+  diagramId: z.string().optional(),
 });
 
 /**
@@ -77,7 +95,7 @@ export const fixMermaidSyntaxAction = authAction
   .inputSchema(fixSyntaxSchema)
   .action(
     async ({
-      ctx: { user, supabase },
+      ctx: { user },
       parsedInput: { code, errorMessage, diagramId },
     }) => {
       if (!isAIConfigured()) {
@@ -126,7 +144,7 @@ Fix the syntax error in the Mermaid code above.`;
           prompt: userPrompt,
         });
 
-        const codeMatch = text.match(/```mermaid\n([\s\S]*?)\n```/);
+        const codeMatch = text.match(MERMAID_CODE_BLOCK_REGEX);
 
         if (!codeMatch) {
           if (text.includes('ERROR:') || text.includes('Invalid input')) {

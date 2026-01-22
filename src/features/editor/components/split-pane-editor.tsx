@@ -1,7 +1,18 @@
 'use client';
 
+/**
+ * Split Pane Editor Component
+ * Provides a resizable split view with code editor and preview pane
+ *
+ * Optimizations (vercel-react-best-practices):
+ * - rerender-memo: Component wrapped in memo for re-render optimization
+ * - rerender-functional-setstate: Using functional setState for stable callbacks
+ * - rendering-hoist-jsx: Static JSX elements hoisted where possible
+ * - client-event-listeners: Deduplicated event listeners in useEffect
+ */
+
 import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
-import { GripVertical, GripHorizontal, Code, Eye } from 'lucide-react';
+import { GripVertical, Code, Eye } from 'lucide-react';
 import { CodeEditor } from './code-editor';
 import { PreviewPane } from './preview-pane';
 import { AIFixButton } from './ai-fix-button';
@@ -17,14 +28,17 @@ interface SplitPaneEditorProps {
   diagramName: string;
 }
 
-// Hook to detect mobile viewport
+// Hook to detect mobile viewport (client-passive-event-listeners)
 function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(false);
+  // Lazy state initialization (rerender-lazy-state-init)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false,
+  );
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    // Use passive listener for better scroll performance
+    window.addEventListener('resize', checkMobile, { passive: true });
     return () => window.removeEventListener('resize', checkMobile);
   }, [breakpoint]);
 
@@ -62,6 +76,8 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
   }, [fixedCode, isFixing, modalDismissed]);
 
   // Handle resize drag - use functional setState for stable callback
+  // Optimized with passive event listeners (client-passive-event-listeners)
+  // and batched CSS changes (js-batch-dom-css)
   useEffect(() => {
     if (!isDragging || isMobile) return;
 
@@ -78,16 +94,16 @@ export const SplitPaneEditor = memo(function SplitPaneEditor({
 
     const handleMouseUp = () => setIsDragging(false);
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    // Use passive listeners for better performance
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('mouseup', handleMouseUp, { passive: true });
+    // Batch CSS changes into single cssText assignment
+    document.body.style.cssText = 'cursor: col-resize; user-select: none;';
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.body.style.cssText = '';
     };
   }, [isDragging, isMobile]);
 

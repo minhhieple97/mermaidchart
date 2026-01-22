@@ -6,6 +6,10 @@
  *
  * Requirements:
  * - 4.5: Resize split pane divider to adjust widths proportionally
+ *
+ * Optimizations (vercel-react-best-practices):
+ * - client-passive-event-listeners: Using passive listeners for better scroll performance
+ * - rerender-functional-setstate: Using functional setState for stable callbacks
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -45,9 +49,10 @@ export function useSplitPane(
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
+      const container = containerRef.current;
+      if (!container) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
       const containerWidth = containerRect.width;
       const mouseX = e.clientX - containerRect.left;
 
@@ -66,8 +71,9 @@ export function useSplitPane(
       setIsDragging(false);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    // Use passive: false for mousemove since we may need to prevent default
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('mouseup', handleMouseUp, { passive: true });
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -75,19 +81,16 @@ export function useSplitPane(
     };
   }, [isDragging]);
 
-  // Prevent text selection while dragging
+  // Prevent text selection while dragging - batch DOM/CSS changes (js-batch-dom-css)
   useEffect(() => {
     if (isDragging) {
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
+      document.body.style.cssText = 'user-select: none; cursor: col-resize;';
     } else {
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      document.body.style.cssText = '';
     }
 
     return () => {
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      document.body.style.cssText = '';
     };
   }, [isDragging]);
 

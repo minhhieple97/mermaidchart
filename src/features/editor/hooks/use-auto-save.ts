@@ -7,6 +7,10 @@
  * Requirements:
  * - 4.6: Auto-save changes after 2 seconds of inactivity
  * - 6.1: Persist changes to database after auto-save triggers
+ *
+ * Optimizations (vercel-react-best-practices):
+ * - rerender-functional-setstate: Using functional setState for stable callbacks
+ * - rerender-defer-reads: Deferred state reads to usage point
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -40,6 +44,9 @@ export function useAutoSave(
   const initialValueRef = useRef(value);
   const hasChangedRef = useRef(false);
   const previousValueRef = useRef(value);
+  // Store onSave in ref to avoid dependency changes (advanced-use-latest pattern)
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
 
   // Track if value has changed from initial
   useEffect(() => {
@@ -56,7 +63,7 @@ export function useAutoSave(
       setError(null);
 
       try {
-        await onSave(valueToSave);
+        await onSaveRef.current(valueToSave);
         setLastSaved(new Date());
         previousValueRef.current = valueToSave;
       } catch (err) {
@@ -67,7 +74,7 @@ export function useAutoSave(
         setIsSaving(false);
       }
     },
-    [onSave, enabled],
+    [enabled],
   );
 
   useEffect(() => {
