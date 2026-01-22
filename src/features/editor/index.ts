@@ -10,7 +10,6 @@ export { PreviewPane } from './components/preview-pane';
 export { AIFixButton } from './components/ai-fix-button';
 export { AIFixModal } from './components/ai-fix-modal';
 export { ExportToolbar } from './components/export-toolbar';
-export { EditorHeader } from './components/editor-header';
 
 // Hooks
 export { useMermaidRenderer } from './hooks/use-mermaid-renderer';

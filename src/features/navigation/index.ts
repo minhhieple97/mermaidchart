@@ -4,6 +4,6 @@
 
 export { BreadcrumbNav } from './components/breadcrumb-nav';
 export type {
-  BreadcrumbItem,
+  BreadcrumbNavItem,
   BreadcrumbNavProps,
 } from './components/breadcrumb-nav';

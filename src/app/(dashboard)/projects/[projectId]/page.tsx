@@ -2,12 +2,12 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { Loader2, Plus, Home, ChevronRight, FolderOpen } from 'lucide-react';
+import { Loader2, Plus, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DiagramList } from '@/components/diagram-list';
 import { CreateDiagramDialog } from '@/components/create-diagram-dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { BreadcrumbNav } from '@/features/navigation';
 import { useDiagrams, useDeleteDiagram } from '@/hooks/use-diagrams';
 import { useProjects } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
@@ -105,18 +105,10 @@ export default function ProjectPage() {
     <>
       <div className="max-w-screen-xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm mb-4 sm:mb-6">
-          <Link
-            href="/"
-            className="text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <Home className="h-4 w-4" />
-          </Link>
-          <ChevronRight className="h-4 w-4 text-gray-300" />
-          <span className="font-medium text-gray-900">
-            {currentProject?.name || 'Project'}
-          </span>
-        </nav>
+        <BreadcrumbNav
+          items={[{ label: currentProject?.name || 'Project' }]}
+          className="mb-4 sm:mb-6"
+        />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 sm:mb-8">
