@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Toaster } from '@/components/ui/toaster';
 import { signOutAction } from '@/actions/auth';
+import { CreditBadge } from '@/features/credits';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -43,34 +44,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <span>Mermaid Preview</span>
           </Link>
 
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 h-9 px-3">
-                <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User className="h-4 w-4 text-gray-600" />
-                </div>
-                <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                  Account
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem disabled className="text-gray-500">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => signOut()}
-                disabled={isLoggingOut}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Credits & User Menu */}
+          <div className="flex items-center gap-3">
+            <CreditBadge />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 h-9 px-3">
+                  <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="h-4 w-4 text-gray-600" />
+                  </div>
+                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                    Account
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem disabled className="text-gray-500">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => signOut()}
+                  disabled={isLoggingOut}
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 

@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { CreditBadge } from '@/features/credits';
 
 interface EditorHeaderProps {
   projectId: string;
@@ -167,6 +168,9 @@ function HeaderRight({
 }) {
   return (
     <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+      {/* Credits Badge */}
+      <CreditBadge variant="compact" className="hidden sm:flex" />
+
       {/* Desktop: Individual buttons */}
       <div className="hidden sm:flex items-center gap-2">
         <VisibilityToggleButton

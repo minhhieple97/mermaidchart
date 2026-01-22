@@ -10,6 +10,9 @@ export {
   checkCreditsAction,
 } from './actions/credits.actions';
 
+// Components
+export { CreditBadge } from './components/credit-badge';
+
 // Hooks
 export { useCredits } from './hooks/use-credits';
 
